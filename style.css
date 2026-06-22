@@ -90,10 +90,10 @@ body {
 }
 
 .landing-logo-img {
-  max-width: 400px;
+  max-width: 520px;
   width: 100%;
   height: auto;
-  margin: 0 auto 16px;
+  margin: 0 auto 20px;
   display: block;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
 }
@@ -194,8 +194,8 @@ body {
   height: auto;
   display: block;
   border-radius: var(--radius-md);
-  background: #fff;
-  padding: 8px;
+  background: transparent;
+  padding: 4px;
 }
 
 .nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
