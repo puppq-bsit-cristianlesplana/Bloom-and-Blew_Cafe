@@ -20,9 +20,7 @@
     <div class="landing-overlay"></div>
 
     <div class="landing-content">
-      <div class="landing-logo">☕</div>
-      <h1 class="landing-title">Bloom and Blew</h1>
-      <h2 class="landing-subtitle">Cafe</h2>
+      <img src="images/logo.png" alt="Bloom and Blew Cafe" class="landing-logo-img">
       <p class="landing-tagline">Modern Comfort, Grassy Nature.<br>Where friends and family bond &amp; chill.</p>
 
       <button class="landing-btn" id="enter-pos-btn" type="button">Enter POS System</button>
@@ -59,11 +57,7 @@
 
     <aside class="sidebar">
       <div class="brand">
-        <span class="brand-icon">☕</span>
-        <div class="brand-text">
-          <span class="brand-name">Bloom &amp; Brew</span>
-          <span class="brand-sub">Café POS</span>
-        </div>
+        <img src="images/logo.png" alt="Bloom and Blew Cafe" class="brand-logo">
       </div>
 
       <nav class="nav">
@@ -90,15 +84,26 @@
         </button>
       </nav>
 
-      <div class="sidebar-user">
+      <button class="sidebar-user" id="user-btn" type="button">
         <span class="user-avatar">NM</span>
         <div class="user-text">
           <span class="user-name">Nicole Melican</span>
           <span class="user-role">Cashier</span>
         </div>
         <span class="user-caret">⌄</span>
-      </div>
+      </button>
     </aside>
+
+    <!-- EXIT MODAL -->
+    <div class="modal-overlay" id="exit-modal">
+      <div class="modal-card exit-modal-card">
+        <div class="exit-modal-avatar">NM</div>
+        <h2 class="exit-modal-name">Nicole Melican</h2>
+        <p class="exit-modal-role">Cashier</p>
+        <button class="btn btn-danger-solid" id="exit-btn" type="button">Exit to Home</button>
+        <button class="btn btn-outline exit-modal-cancel" id="exit-cancel-btn" type="button">Cancel</button>
+      </div>
+    </div>
 
     <main id="app" class="main">
 

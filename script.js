@@ -52,6 +52,27 @@ document.getElementById("enter-pos-btn").addEventListener("click", async () => {
   showPage("orders");
 });
 
+// --- Exit modal (cashier name click) ----------------------------------------
+const exitModal = document.getElementById("exit-modal");
+
+document.getElementById("user-btn").addEventListener("click", () => {
+  exitModal.classList.add("visible");
+});
+
+document.getElementById("exit-cancel-btn").addEventListener("click", () => {
+  exitModal.classList.remove("visible");
+});
+
+exitModal.addEventListener("click", (e) => {
+  if (e.target === exitModal) exitModal.classList.remove("visible");
+});
+
+document.getElementById("exit-btn").addEventListener("click", () => {
+  exitModal.classList.remove("visible");
+  document.getElementById("pos-app").classList.add("hidden");
+  document.getElementById("landing-page").classList.remove("hidden");
+});
+
 function updateTaxLabels() {
   const pct = (taxRate * 100).toFixed(2).replace(/\.?0+$/, "");
   const label = "Tax (" + pct + "%)";
