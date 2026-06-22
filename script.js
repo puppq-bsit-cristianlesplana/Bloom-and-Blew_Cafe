@@ -1,26 +1,13 @@
 /* ===========================================================================
-   BLOO & BREW CAFÉ — POS SCRIPT (DATABASE-BACKED)
-   ===========================================================================
-   This version reads and writes real data via db.js (IndexedDB) instead of
-   in-memory arrays. The full working flow:
-
-     1. New Order   -> click menu items to build a cart (in-memory until
-                        checkout; this matches how a real POS holds the
-                        current ticket before it's committed)
-     2. Checkout    -> opens the Cash Payment modal, computes change live
-     3. Confirm     -> validates payment, creates the order in IndexedDB
-                        with status "sent_to_kitchen", deducts ingredient
-                        stock for every item ordered, and creates Manager
-                        Approval alerts for anything that drops low
-     4. Kitchen     -> reads orders from IndexedDB; Start/Serve buttons
-                        update each order's status in the database
-     5. Inventory   -> reads live stock levels from IndexedDB
-     6. Manager Approval -> reads live alerts from IndexedDB; Approve
-                        Restock writes the restock back into inventory
-
-   Every page re-reads from the database each time it's shown, so all
-   five views always reflect the same underlying data.
+   BLOOM & BREW CAFÉ — POS SCRIPT
    =========================================================================== */
+
+// --- Landing page -----------------------------------------------------------
+document.getElementById("enter-pos-btn").addEventListener("click", () => {
+  document.getElementById("landing-page").classList.add("hidden");
+  document.getElementById("pos-app").classList.remove("hidden");
+  showPage("dashboard");
+});
 
 let MENU = [];
 let menuById = {};
@@ -30,18 +17,44 @@ const cart = [];
 const ITEMS_PER_PAGE = 12;
 let menuPage = 1;
 let dashPage = 1;
+let taxRate = 0.0825;
 
-// --- 0. Boot: open DB, seed if empty, load menu, render first page -------
+// Global handler: when a menu item image fails to load, replace with placeholder
+document.addEventListener("error", function (e) {
+  if (e.target.tagName === "IMG" && e.target.classList.contains("item-img")) {
+    const div = document.createElement("div");
+    div.className = "item-img item-img--placeholder";
+    div.dataset.cat = e.target.dataset.cat;
+    div.textContent = e.target.alt.charAt(0);
+    e.target.replaceWith(div);
+  }
+}, true);
+
+// --- 0. Boot ----------------------------------------------------------------
 (async function boot() {
   await seedIfEmpty();
   MENU = await DB.getAll("menuItems");
   menuById = Object.fromEntries(MENU.map((m) => [m.id, m]));
+
+  const taxRow = await DB.get("meta", "taxRate");
+  if (taxRow) taxRate = taxRow.value;
+  updateTaxLabels();
+
   renderMenu();
   renderCart();
   await refreshApprovalBadge();
 })();
 
-// --- 1. Sidebar navigation ------------------------------------------------
+function updateTaxLabels() {
+  const pct = (taxRate * 100).toFixed(2).replace(/\.?0+$/, "");
+  const label = "Tax (" + pct + "%)";
+  const el1 = document.getElementById("tax-label");
+  const el2 = document.getElementById("detail-tax-label");
+  if (el1) el1.textContent = label;
+  if (el2) el2.textContent = label;
+}
+
+// --- 1. Sidebar navigation --------------------------------------------------
 const navButtons = document.querySelectorAll(".nav-item, .back-link");
 function showPage(pageId) {
   document.querySelectorAll(".page").forEach((p) => p.classList.remove("visible"));
@@ -56,16 +69,21 @@ function showPage(pageId) {
   if (pageId === "kitchen") { renderKitchen(); clearBadge("kitchen-badge"); }
   if (pageId === "inventory") { renderInventory(); clearBadge("inventory-badge"); }
   if (pageId === "approval") renderApprovals();
+  if (pageId === "settings") renderSettings();
 }
 navButtons.forEach((btn) => {
   btn.addEventListener("click", () => showPage(btn.dataset.page));
 });
 
-// --- 2. New Order: menu + cart --------------------------------------------
+// --- 2. New Order: menu + cart ----------------------------------------------
 function getFilteredMenu() {
   return MENU
     .filter((m) => activeCat === "All" || m.cat === activeCat)
     .filter((m) => m.name.toLowerCase().includes(searchTerm.toLowerCase()));
+}
+
+function itemImgHtml(item, cls) {
+  return '<img class="' + cls + ' item-img" src="' + item.image + '" alt="' + item.name + '" data-cat="' + item.cat + '">';
 }
 
 function renderMenu() {
@@ -80,14 +98,14 @@ function renderMenu() {
   pageItems.forEach((item) => {
     const card = document.createElement("button");
     card.className = "menu-item";
-    card.innerHTML = `
-      <div class="menu-item-emoji">${item.emoji}</div>
-      <div class="menu-item-name">${item.name}</div>
-      <div class="menu-item-row">
-        <span class="menu-item-price">₱${item.price.toFixed(2)}</span>
-        <span class="menu-item-add">+</span>
-      </div>
-    `;
+    card.type = "button";
+    card.innerHTML =
+      itemImgHtml(item, "menu-item-img") +
+      '<div class="menu-item-name">' + item.name + '</div>' +
+      '<div class="menu-item-row">' +
+        '<span class="menu-item-price">₱' + item.price.toFixed(2) + '</span>' +
+        '<span class="menu-item-add">+</span>' +
+      '</div>';
     card.addEventListener("click", () => addToCart(item));
     grid.appendChild(card);
   });
@@ -112,7 +130,7 @@ function changeQty(id, delta) {
 
 function cartTotals() {
   const subtotal = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
-  const tax = subtotal * 0.0825;
+  const tax = subtotal * taxRate;
   const total = subtotal + tax;
   return { subtotal, tax, total };
 }
@@ -123,15 +141,14 @@ function renderCart() {
   cart.forEach((line) => {
     const row = document.createElement("div");
     row.className = "order-line";
-    row.innerHTML = `
-      <span class="order-line-name">${line.name}</span>
-      <span class="qty-stepper">
-        <button data-delta="-1">−</button>
-        <span>${line.qty}</span>
-        <button data-delta="1">+</button>
-      </span>
-      <span class="order-line-price">₱${(line.price * line.qty).toFixed(2)}</span>
-    `;
+    row.innerHTML =
+      '<span class="order-line-name">' + line.name + '</span>' +
+      '<span class="qty-stepper">' +
+        '<button data-delta="-1" type="button">−</button>' +
+        '<span>' + line.qty + '</span>' +
+        '<button data-delta="1" type="button">+</button>' +
+      '</span>' +
+      '<span class="order-line-price">₱' + (line.price * line.qty).toFixed(2) + '</span>';
     row.querySelectorAll("button").forEach((btn) => {
       btn.addEventListener("click", () => changeQty(line.id, parseInt(btn.dataset.delta, 10)));
     });
@@ -145,7 +162,7 @@ function renderCart() {
   document.getElementById("checkout-total").textContent = "₱" + total.toFixed(2);
 
   const hint = document.getElementById("cart-hint");
-  hint.textContent = cart.length === 0 ? "Add items from the menu to start an order." : `${cart.reduce((n, c) => n + c.qty, 0)} item(s) in this order.`;
+  hint.textContent = cart.length === 0 ? "Add items from the menu to start an order." : cart.reduce((n, c) => n + c.qty, 0) + " item(s) in this order.";
 }
 
 document.querySelectorAll(".category-pills .pill").forEach((pill) => {
@@ -169,7 +186,7 @@ document.getElementById("clear-order").addEventListener("click", () => {
   renderCart();
 });
 
-// --- 3. Checkout + Cash Payment modal -------------------------------------
+// --- 3. Checkout + Cash Payment modal ---------------------------------------
 const modal = document.getElementById("payment-modal");
 const tenderedInput = document.getElementById("cash-tendered");
 const modalError = document.getElementById("modal-error");
@@ -198,6 +215,7 @@ function renderQuickCash(total) {
   amounts.forEach((amt) => {
     const btn = document.createElement("button");
     btn.className = "quick-cash-btn";
+    btn.type = "button";
     btn.textContent = "₱" + amt.toFixed(0);
     btn.addEventListener("click", () => { tenderedInput.value = amt.toFixed(2); updateChange(); });
     row.appendChild(btn);
@@ -224,8 +242,6 @@ document.getElementById("confirm-payment-btn").addEventListener("click", async (
 
   const change = +(tendered - total).toFixed(2);
 
-  // Step 1-2: order is received and computed (cart + totals already exist).
-  // Step 3: persist the order as sent to the kitchen.
   const order = await createOrder({
     items: cart.map((c) => ({ id: c.id, name: c.name, price: c.price, qty: c.qty })),
     subtotal, tax, total,
@@ -233,7 +249,6 @@ document.getElementById("confirm-payment-btn").addEventListener("click", async (
     tableLabel: "Table 5",
   });
 
-  // Step 4 + decision: deduct ingredient stock, raise alerts if needed.
   await deductInventoryForOrder(order.items, menuById);
 
   cart.length = 0;
@@ -246,7 +261,7 @@ document.getElementById("confirm-payment-btn").addEventListener("click", async (
   showOrderDetail(order.id);
 });
 
-// --- 4. Order Details (real data from the database) ----------------------
+// --- 4. Order Details -------------------------------------------------------
 async function showOrderDetail(orderId) {
   const order = await DB.get("orders", orderId);
   if (!order) return;
@@ -266,12 +281,11 @@ async function showOrderDetail(orderId) {
   body.innerHTML = "";
   order.items.forEach((line) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${line.name}</td>
-      <td>${line.qty}</td>
-      <td>₱${line.price.toFixed(2)}</td>
-      <td>₱${(line.price * line.qty).toFixed(2)}</td>
-    `;
+    tr.innerHTML =
+      "<td>" + line.name + "</td>" +
+      "<td>" + line.qty + "</td>" +
+      "<td>₱" + line.price.toFixed(2) + "</td>" +
+      "<td>₱" + (line.price * line.qty).toFixed(2) + "</td>";
     body.appendChild(tr);
   });
 
@@ -283,7 +297,7 @@ async function showOrderDetail(orderId) {
   paymentPill.textContent = "Paid (Cash)";
   paymentPill.className = "status-pill status-paid";
   document.getElementById("detail-payment-info").textContent =
-    `Cash tendered ₱${order.payment.tendered.toFixed(2)} · Change ₱${order.payment.change.toFixed(2)}`;
+    "Cash tendered ₱" + order.payment.tendered.toFixed(2) + " · Change ₱" + order.payment.change.toFixed(2);
 
   const orderOfStatus = ["sent_to_kitchen", "preparing", "ready", "completed"];
   const currentIdx = orderOfStatus.indexOf(order.status);
@@ -298,22 +312,19 @@ async function showOrderDetail(orderId) {
   const timeline = document.getElementById("detail-status-timeline");
   timeline.innerHTML = "";
   steps.forEach((step, i) => {
-    // "Order Received" (0) and "Sent to Kitchen" (1) both complete as soon
-    // as status reaches sent_to_kitchen (index 0); the remaining steps map
-    // 1:1 to orderOfStatus indices 1, 2, 3.
     const mappedIdx = i <= 1 ? 0 : i - 1;
     const done = mappedIdx < currentIdx || (i <= 1 && currentIdx >= 0);
     const active = mappedIdx === currentIdx && i > 1;
     const li = document.createElement("li");
     li.className = done ? "done" : active ? "active" : "";
-    li.innerHTML = `<span class="dot">${i + 1}</span> ${step.label} <span class="time">${done || active ? order.timeLabel : "Pending"}</span> ${done ? '<span class="check">✓</span>' : ""}`;
+    li.innerHTML = '<span class="dot">' + (i + 1) + '</span> ' + step.label + ' <span class="time">' + (done || active ? order.timeLabel : "Pending") + '</span> ' + (done ? '<span class="check">✓</span>' : "");
     timeline.appendChild(li);
   });
 
   showPage("detail");
 }
 
-// --- 5. Kitchen Queue (real orders from the database) ---------------------
+// --- 5. Kitchen Queue -------------------------------------------------------
 let kitchenFilter = "All";
 
 async function renderKitchen() {
@@ -335,25 +346,24 @@ async function renderKitchen() {
     .forEach((o) => {
       const card = document.createElement("div");
       card.className = "kitchen-card" + (o.status === "sent_to_kitchen" ? " new" : o.status === "ready" ? " ready" : "");
-      const itemsHtml = o.items.map((i) => `<li>${i.name} x${i.qty}</li>`).join("");
+      const itemsHtml = o.items.map((i) => "<li>" + i.name + " x" + i.qty + "</li>").join("");
 
       let actionHtml = "";
       if (o.status === "sent_to_kitchen") {
-        actionHtml = `<button class="btn btn-start" data-order="${o.id}" data-next="preparing">Start</button>`;
+        actionHtml = '<button class="btn btn-start" data-order="' + o.id + '" data-next="preparing" type="button">Start</button>';
       } else if (o.status === "preparing") {
         const mins = Math.max(0, Math.round((Date.now() - new Date(o.createdAt)) / 60000));
-        actionHtml = `<span class="kitchen-elapsed">⏱ ${mins} min elapsed</span><button class="btn btn-start" data-order="${o.id}" data-next="ready">Mark Ready</button>`;
+        actionHtml = '<span class="kitchen-elapsed">⏱ ' + mins + ' min elapsed</span><button class="btn btn-start" data-order="' + o.id + '" data-next="ready" type="button">Mark Ready</button>';
       } else if (o.status === "ready") {
-        actionHtml = `<div class="ready-tag">Ready</div><button class="btn btn-serve" data-order="${o.id}" data-next="completed">Serve</button>`;
+        actionHtml = '<div class="ready-tag">Ready</div><button class="btn btn-serve" data-order="' + o.id + '" data-next="completed" type="button">Serve</button>';
       }
 
-      card.innerHTML = `
-        <div class="kitchen-card-head"><span>#${o.id}</span><span class="time">${o.timeLabel}</span></div>
-        <div class="kitchen-card-meta">${o.table}</div>
-        <ul class="kitchen-card-items">${itemsHtml}</ul>
-        <div class="kitchen-card-customer">Cashier: Nicole M.</div>
-        ${actionHtml}
-      `;
+      card.innerHTML =
+        '<div class="kitchen-card-head"><span>#' + o.id + '</span><span class="time">' + o.timeLabel + '</span></div>' +
+        '<div class="kitchen-card-meta">' + o.table + '</div>' +
+        '<ul class="kitchen-card-items">' + itemsHtml + '</ul>' +
+        '<div class="kitchen-card-customer">Cashier: Nicole M.</div>' +
+        actionHtml;
       card.querySelectorAll("button[data-order]").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
@@ -375,7 +385,7 @@ document.querySelectorAll(".queue-filter-pills .pill[data-filter]").forEach((pil
   });
 });
 
-// --- 6. Inventory (real stock from the database) --------------------------
+// --- 6. Inventory -----------------------------------------------------------
 let invFilter = "All";
 const statusClass = { "In Stock": "status-instock", "Low Stock": "status-lowstock", "Out of Stock": "status-outofstock" };
 
@@ -397,13 +407,12 @@ async function renderInventory() {
     .forEach((r) => {
       const status = statusOf(r);
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.name}</td>
-        <td>${r.category}</td>
-        <td>${r.stock.toFixed(2)}</td>
-        <td>${r.unit}</td>
-        <td><span class="status-pill ${statusClass[status]}">${status}</span></td>
-      `;
+      tr.innerHTML =
+        "<td>" + r.name + "</td>" +
+        "<td>" + r.category + "</td>" +
+        "<td>" + r.stock.toFixed(2) + "</td>" +
+        "<td>" + r.unit + "</td>" +
+        '<td><span class="status-pill ' + statusClass[status] + '">' + status + "</span></td>";
       body.appendChild(tr);
     });
 }
@@ -417,7 +426,7 @@ document.querySelectorAll("#page-inventory .pill").forEach((pill) => {
   });
 });
 
-// --- 7. Manager Approval (real alerts from the database) ------------------
+// --- 7. Manager Approval ----------------------------------------------------
 let appFilter = "needed";
 
 async function refreshApprovalBadge() {
@@ -425,7 +434,7 @@ async function refreshApprovalBadge() {
   const needed = alerts.filter((a) => a.status === "needed").length;
   const badge = document.getElementById("approval-badge");
   badge.textContent = needed;
-  badge.style.display = needed > 0 ? "inline-flex" : "none";
+  badge.classList.toggle("hidden", needed <= 0);
 }
 
 async function renderApprovals() {
@@ -444,24 +453,22 @@ async function renderApprovals() {
       card.className = "approval-card " + a.type;
       const title = a.type === "out" ? "⛔ Out of Stock Alert" : "⚠ Low Stock Alert";
       const text = a.type === "out"
-        ? `<p class="approval-text">${a.ingredient} is out of stock.</p>`
-        : `<p class="approval-text">${a.ingredient} is running low (${a.stock.toFixed(2)} ${a.unit} available).</p>`;
+        ? '<p class="approval-text">' + a.ingredient + ' is out of stock.</p>'
+        : '<p class="approval-text">' + a.ingredient + ' is running low (' + a.stock.toFixed(2) + ' ' + a.unit + ' available).</p>';
 
       const actionsHtml = a.status === "needed"
-        ? `<div class="approval-actions">
-             <button class="btn btn-outline">View Details</button>
-             <button class="btn btn-approve" data-approve="${a.id}">Approve Restock</button>
-           </div>`
-        : `<p class="approval-text" style="color:#15803D;">✓ Approved ${a.approvedAt || ""}</p>`;
+        ? '<div class="approval-actions">' +
+            '<button class="btn btn-outline" type="button">View Details</button>' +
+            '<button class="btn btn-approve" data-approve="' + a.id + '" type="button">Approve Restock</button>' +
+          '</div>'
+        : '<p class="approval-done">✓ Approved ' + (a.approvedAt || "") + '</p>';
 
-      card.innerHTML = `
-        <div class="approval-head">
-          <span class="approval-title">${title}</span>
-          <span class="approval-time">${a.time}</span>
-        </div>
-        ${text}
-        ${actionsHtml}
-      `;
+      card.innerHTML =
+        '<div class="approval-head">' +
+          '<span class="approval-title">' + title + '</span>' +
+          '<span class="approval-time">' + a.time + '</span>' +
+        '</div>' +
+        text + actionsHtml;
       const approveBtn = card.querySelector("[data-approve]");
       if (approveBtn) {
         approveBtn.addEventListener("click", async () => {
@@ -486,7 +493,7 @@ document.querySelectorAll("#page-approval .pill[data-appfilter]").forEach((pill)
 
 document.getElementById("approval-refresh").addEventListener("click", renderApprovals);
 
-// --- 8. Notification badges for sidebar ------------------------------------
+// --- 8. Notification badges -------------------------------------------------
 function setBadge(id, count) {
   const badge = document.getElementById(id);
   if (!badge) return;
@@ -494,23 +501,19 @@ function setBadge(id, count) {
   badge.classList.toggle("hidden", count <= 0);
 }
 
-function clearBadge(id) {
-  setBadge(id, 0);
-}
+function clearBadge(id) { setBadge(id, 0); }
 
 async function refreshKitchenBadge() {
   const orders = await DB.getAll("orders");
-  const newCount = orders.filter((o) => o.status === "sent_to_kitchen").length;
-  setBadge("kitchen-badge", newCount);
+  setBadge("kitchen-badge", orders.filter((o) => o.status === "sent_to_kitchen").length);
 }
 
 async function refreshInventoryBadge() {
   const rows = await DB.getAll("inventory");
-  const alertCount = rows.filter((r) => r.stock < r.lowThreshold).length;
-  setBadge("inventory-badge", alertCount);
+  setBadge("inventory-badge", rows.filter((r) => r.stock < r.lowThreshold).length);
 }
 
-// --- 9. Pagination helper ---------------------------------------------------
+// --- 9. Pagination ----------------------------------------------------------
 function renderPagination(containerId, currentPage, totalPages, onPageChange) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
@@ -518,6 +521,7 @@ function renderPagination(containerId, currentPage, totalPages, onPageChange) {
 
   const prev = document.createElement("button");
   prev.className = "page-btn";
+  prev.type = "button";
   prev.textContent = "←";
   prev.disabled = currentPage <= 1;
   prev.addEventListener("click", () => onPageChange(currentPage - 1));
@@ -526,6 +530,7 @@ function renderPagination(containerId, currentPage, totalPages, onPageChange) {
   for (let i = 1; i <= totalPages; i++) {
     const btn = document.createElement("button");
     btn.className = "page-btn" + (i === currentPage ? " active" : "");
+    btn.type = "button";
     btn.textContent = i;
     btn.addEventListener("click", () => onPageChange(i));
     container.appendChild(btn);
@@ -533,6 +538,7 @@ function renderPagination(containerId, currentPage, totalPages, onPageChange) {
 
   const next = document.createElement("button");
   next.className = "page-btn";
+  next.type = "button";
   next.textContent = "→";
   next.disabled = currentPage >= totalPages;
   next.addEventListener("click", () => onPageChange(currentPage + 1));
@@ -544,30 +550,12 @@ async function renderDashboard() {
   const orders = await DB.getAll("orders");
   const inventory = await DB.getAll("inventory");
 
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
-  const pendingKitchen = orders.filter((o) => o.status === "sent_to_kitchen").length;
-  const lowStockCount = inventory.filter((r) => r.stock < r.lowThreshold).length;
-
   const statsContainer = document.getElementById("dashboard-stats");
-  statsContainer.innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">Total Orders</div>
-      <div class="stat-value">${totalOrders}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Total Revenue</div>
-      <div class="stat-value">₱${totalRevenue.toFixed(2)}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Pending in Kitchen</div>
-      <div class="stat-value">${pendingKitchen}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Low Stock Items</div>
-      <div class="stat-value">${lowStockCount}</div>
-    </div>
-  `;
+  statsContainer.innerHTML =
+    '<div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">' + orders.length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">₱' + orders.reduce((s, o) => s + o.total, 0).toFixed(2) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Pending in Kitchen</div><div class="stat-value">' + orders.filter((o) => o.status === "sent_to_kitchen").length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Low Stock Items</div><div class="stat-value">' + inventory.filter((r) => r.stock < r.lowThreshold).length + '</div></div>';
 
   const totalDashPages = Math.max(1, Math.ceil(MENU.length / ITEMS_PER_PAGE));
   if (dashPage > totalDashPages) dashPage = totalDashPages;
@@ -579,15 +567,14 @@ async function renderDashboard() {
   pageItems.forEach((item) => {
     const card = document.createElement("div");
     card.className = "dashboard-item-card";
-    card.innerHTML = `
-      <div class="dashboard-item-emoji">${item.emoji}</div>
-      <div class="dashboard-item-info">
-        <div class="dashboard-item-name">${item.name}</div>
-        <div class="dashboard-item-cat">${item.cat}</div>
-        <div class="dashboard-item-price">₱${item.price.toFixed(2)}</div>
-      </div>
-      <button class="btn btn-primary dashboard-order-btn">Order</button>
-    `;
+    card.innerHTML =
+      itemImgHtml(item, "dashboard-item-img") +
+      '<div class="dashboard-item-info">' +
+        '<div class="dashboard-item-name">' + item.name + '</div>' +
+        '<div class="dashboard-item-cat">' + item.cat + '</div>' +
+        '<div class="dashboard-item-price">₱' + item.price.toFixed(2) + '</div>' +
+      '</div>' +
+      '<button class="btn btn-primary dashboard-order-btn" type="button">Order</button>';
     card.querySelector(".dashboard-order-btn").addEventListener("click", () => {
       addToCart(item);
       showPage("orders");
@@ -597,3 +584,74 @@ async function renderDashboard() {
 
   renderPagination("dashboard-pagination", dashPage, totalDashPages, (p) => { dashPage = p; renderDashboard(); });
 }
+
+// --- 11. Settings -----------------------------------------------------------
+function renderSettings() {
+  const taxInput = document.getElementById("settings-tax");
+  taxInput.value = (taxRate * 100).toFixed(2);
+
+  const body = document.getElementById("settings-prices-body");
+  body.innerHTML = "";
+  MENU.forEach((item) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + item.name + "</td>" +
+      "<td>" + item.cat + "</td>" +
+      '<td><input type="number" class="settings-input settings-price-input" data-id="' + item.id + '" value="' + item.price.toFixed(2) + '" min="0" step="0.01"></td>';
+    body.appendChild(tr);
+  });
+}
+
+document.getElementById("save-tax-btn").addEventListener("click", async () => {
+  const val = parseFloat(document.getElementById("settings-tax").value);
+  if (isNaN(val) || val < 0 || val > 100) return;
+  taxRate = val / 100;
+  await DB.put("meta", { key: "taxRate", value: taxRate });
+  updateTaxLabels();
+  renderCart();
+  alert("Tax rate saved: " + val + "%");
+});
+
+document.getElementById("save-prices-btn").addEventListener("click", async () => {
+  const inputs = document.querySelectorAll(".settings-price-input");
+  for (const input of inputs) {
+    const id = input.dataset.id;
+    const newPrice = parseFloat(input.value);
+    if (isNaN(newPrice) || newPrice < 0) continue;
+
+    const item = MENU.find((m) => m.id === id);
+    if (item) {
+      item.price = newPrice;
+      await DB.put("menuItems", item);
+    }
+  }
+  menuById = Object.fromEntries(MENU.map((m) => [m.id, m]));
+  renderMenu();
+  alert("Menu prices saved.");
+});
+
+document.getElementById("reset-stock-btn").addEventListener("click", async () => {
+  if (!confirm("Reset all inventory to default levels? Orders and menu prices will be kept.")) return;
+  await resetStockOnly();
+  await refreshApprovalBadge();
+  await refreshInventoryBadge();
+  alert("Stock reset to defaults.");
+});
+
+document.getElementById("reset-all-btn").addEventListener("click", async () => {
+  if (!confirm("Reset ALL data? This will clear orders, inventory, prices — everything goes back to factory defaults.")) return;
+  await resetDatabase();
+  MENU = await DB.getAll("menuItems");
+  menuById = Object.fromEntries(MENU.map((m) => [m.id, m]));
+  const taxRow = await DB.get("meta", "taxRate");
+  if (taxRow) taxRate = taxRow.value;
+  updateTaxLabels();
+  cart.length = 0;
+  renderCart();
+  renderMenu();
+  renderSettings();
+  await refreshApprovalBadge();
+  await refreshKitchenBadge();
+  await refreshInventoryBadge();
+  alert("All data reset to factory defaults.");
+});

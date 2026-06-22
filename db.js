@@ -1,27 +1,9 @@
 /* ===========================================================================
-   BLOO & BREW CAFÉ — SIMPLE DATABASE LAYER (IndexedDB)
-   ===========================================================================
-   This file is the entire persistence layer for the POS system. It uses
-   the browser's built-in IndexedDB so the system works with no server,
-   no build step, and no external dependencies — while still being a real
-   database that survives page reloads (unlike plain in-memory state).
-
-   Object stores (tables):
-     menuItems   { id, name, price, cat, emoji, ingredients: [{ name, use }] }
-     inventory   { name (key), category, stock, unit, lowThreshold }
-     orders      { id (key), items, status, subtotal, tax, total,
-                   payment, createdAt, table, tags }
-     approvals   { id (key), type, ingredient, time, status }
-
-   Status values for `orders.status`:
-     "sent_to_kitchen" -> "preparing" -> "ready" -> "completed"
-   (Cash payment is captured at checkout, before the order is sent.)
-
-   All functions return Promises so calling code can use async/await.
+   BLOOM & BREW CAFÉ — DATABASE LAYER (IndexedDB)
    =========================================================================== */
 
 const DB_NAME = "bloo_brew_pos";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 let dbInstance = null;
 
 function openDB() {
@@ -61,7 +43,6 @@ function promisify(request) {
   });
 }
 
-// --- Generic CRUD helpers -------------------------------------------------
 const DB = {
   async getAll(store) {
     const s = await tx(store);
@@ -93,41 +74,36 @@ const DB = {
 };
 
 // ---------------------------------------------------------------------------
-// Seed data — menu items (with the ingredients each one consumes) and
-// starting inventory levels. Seeded once, on first run only.
+// Seed data
 // ---------------------------------------------------------------------------
 const SEED_MENU = [
-  // Coffee
-  { id: "m1", name: "Americano", price: 45, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }] },
-  { id: "m2", name: "Cafe Latte", price: 55, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
-  { id: "m3", name: "Vanilla Latte", price: 59, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Vanilla Syrup", use: 0.03 }] },
-  { id: "m4", name: "Hazelnut Latte", price: 59, cat: "Coffee", emoji: "🌰", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.03 }] },
-  { id: "m5", name: "Spanish Latte", price: 59, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.12 }, { name: "Condensed Milk", use: 0.03 }] },
-  { id: "m6", name: "Caramel Macchiato", price: 59, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
-  { id: "m7", name: "Salted Caramel", price: 59, cat: "Coffee", emoji: "🧂", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
-  { id: "m8", name: "White Mocha", price: 59, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "White Choco Sauce", use: 0.03 }] },
-  { id: "m9", name: "Cafe Mocha", price: 59, cat: "Coffee", emoji: "🍫", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Choco Sauce", use: 0.03 }] },
-  { id: "m10", name: "Coffee Matcha", price: 59, cat: "Coffee", emoji: "🍵", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.12 }] },
-  { id: "m11", name: "Hazelnut Mocha", price: 59, cat: "Coffee", emoji: "🌰", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.02 }, { name: "Choco Sauce", use: 0.02 }] },
-  // Ice Shaken Drinks
-  { id: "m12", name: "Berry Lemonade", price: 55, cat: "Ice Shaken", emoji: "🍓", ingredients: [{ name: "Berry Mix", use: 0.05 }, { name: "Lemon Juice", use: 0.03 }] },
-  { id: "m13", name: "Honey Calamansi", price: 55, cat: "Ice Shaken", emoji: "🍋", ingredients: [{ name: "Honey", use: 0.03 }, { name: "Calamansi Juice", use: 0.05 }] },
-  { id: "m14", name: "Mango Hibiscus", price: 55, cat: "Ice Shaken", emoji: "🥭", ingredients: [{ name: "Mango Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
-  { id: "m15", name: "Strawberry Hibiscus", price: 55, cat: "Ice Shaken", emoji: "🌺", ingredients: [{ name: "Strawberry Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
-  // Non-Coffee Drinks
-  { id: "m16", name: "Ube Latte", price: 59, cat: "Non-Coffee", emoji: "🟣", ingredients: [{ name: "Ube Powder", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m17", name: "Matcha Latte", price: 59, cat: "Non-Coffee", emoji: "🍵", ingredients: [{ name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m18", name: "Dark Choco", price: 59, cat: "Non-Coffee", emoji: "🍫", ingredients: [{ name: "Choco Sauce", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m19", name: "Oreo Milk", price: 59, cat: "Non-Coffee", emoji: "🥛", ingredients: [{ name: "Oreo Crumbs", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m20", name: "Strawberry Milk", price: 59, cat: "Non-Coffee", emoji: "🍓", ingredients: [{ name: "Strawberry Puree", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m21", name: "Blueberry Milk", price: 59, cat: "Non-Coffee", emoji: "🫐", ingredients: [{ name: "Berry Mix", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m22", name: "Mango Milk", price: 59, cat: "Non-Coffee", emoji: "🥭", ingredients: [{ name: "Mango Puree", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  // Snacks
-  { id: "m23", name: "2 pcs. Hashbrown", price: 55, cat: "Snacks", emoji: "🥔", ingredients: [{ name: "Hashbrown Patties", use: 2 }] },
-  { id: "m24", name: "6 pcs. Chicken Nuggets", price: 59, cat: "Snacks", emoji: "🍗", ingredients: [{ name: "Chicken Nuggets", use: 6 }] },
-  { id: "m25", name: "Cheesy Beef Nachos", price: 65, cat: "Snacks", emoji: "🧀", ingredients: [{ name: "Nacho Chips", use: 1 }, { name: "Beef Topping", use: 0.08 }] },
-  { id: "m26", name: "Crinkled Cut Fries", price: 65, cat: "Snacks", emoji: "🍟", ingredients: [{ name: "Fries", use: 0.15 }] },
-  { id: "m27", name: "Churro Bites", price: 65, cat: "Snacks", emoji: "🍩", ingredients: [{ name: "Churro Dough", use: 0.12 }] },
+  { id: "m1", name: "Americano", price: 45, cat: "Coffee", image: "images/americano.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }] },
+  { id: "m2", name: "Cafe Latte", price: 55, cat: "Coffee", image: "images/cafe-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
+  { id: "m3", name: "Vanilla Latte", price: 59, cat: "Coffee", image: "images/vanilla-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Vanilla Syrup", use: 0.03 }] },
+  { id: "m4", name: "Hazelnut Latte", price: 59, cat: "Coffee", image: "images/hazelnut-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.03 }] },
+  { id: "m5", name: "Spanish Latte", price: 59, cat: "Coffee", image: "images/spanish-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.12 }, { name: "Condensed Milk", use: 0.03 }] },
+  { id: "m6", name: "Caramel Macchiato", price: 59, cat: "Coffee", image: "images/caramel-macchiato.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
+  { id: "m7", name: "Salted Caramel", price: 59, cat: "Coffee", image: "images/salted-caramel.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
+  { id: "m8", name: "White Mocha", price: 59, cat: "Coffee", image: "images/white-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "White Choco Sauce", use: 0.03 }] },
+  { id: "m9", name: "Cafe Mocha", price: 59, cat: "Coffee", image: "images/cafe-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Choco Sauce", use: 0.03 }] },
+  { id: "m10", name: "Coffee Matcha", price: 59, cat: "Coffee", image: "images/coffee-matcha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.12 }] },
+  { id: "m11", name: "Hazelnut Mocha", price: 59, cat: "Coffee", image: "images/hazelnut-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.02 }, { name: "Choco Sauce", use: 0.02 }] },
+  { id: "m12", name: "Berry Lemonade", price: 55, cat: "Ice Shaken", image: "images/berry-lemonade.jpg", ingredients: [{ name: "Berry Mix", use: 0.05 }, { name: "Lemon Juice", use: 0.03 }] },
+  { id: "m13", name: "Honey Calamansi", price: 55, cat: "Ice Shaken", image: "images/honey-calamansi.jpg", ingredients: [{ name: "Honey", use: 0.03 }, { name: "Calamansi Juice", use: 0.05 }] },
+  { id: "m14", name: "Mango Hibiscus", price: 55, cat: "Ice Shaken", image: "images/mango-hibiscus.jpg", ingredients: [{ name: "Mango Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
+  { id: "m15", name: "Strawberry Hibiscus", price: 55, cat: "Ice Shaken", image: "images/strawberry-hibiscus.jpg", ingredients: [{ name: "Strawberry Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
+  { id: "m16", name: "Ube Latte", price: 59, cat: "Non-Coffee", image: "images/ube-latte.jpg", ingredients: [{ name: "Ube Powder", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m17", name: "Matcha Latte", price: 59, cat: "Non-Coffee", image: "images/matcha-latte.jpg", ingredients: [{ name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m18", name: "Dark Choco", price: 59, cat: "Non-Coffee", image: "images/dark-choco.jpg", ingredients: [{ name: "Choco Sauce", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m19", name: "Oreo Milk", price: 59, cat: "Non-Coffee", image: "images/oreo-milk.jpg", ingredients: [{ name: "Oreo Crumbs", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m20", name: "Strawberry Milk", price: 59, cat: "Non-Coffee", image: "images/strawberry-milk.jpg", ingredients: [{ name: "Strawberry Puree", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m21", name: "Blueberry Milk", price: 59, cat: "Non-Coffee", image: "images/blueberry-milk.jpg", ingredients: [{ name: "Berry Mix", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m22", name: "Mango Milk", price: 59, cat: "Non-Coffee", image: "images/mango-milk.jpg", ingredients: [{ name: "Mango Puree", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m23", name: "2 pcs. Hashbrown", price: 55, cat: "Snacks", image: "images/hashbrown.jpg", ingredients: [{ name: "Hashbrown Patties", use: 2 }] },
+  { id: "m24", name: "6 pcs. Chicken Nuggets", price: 59, cat: "Snacks", image: "images/chicken-nuggets.jpg", ingredients: [{ name: "Chicken Nuggets", use: 6 }] },
+  { id: "m25", name: "Cheesy Beef Nachos", price: 65, cat: "Snacks", image: "images/cheesy-beef-nachos.jpg", ingredients: [{ name: "Nacho Chips", use: 1 }, { name: "Beef Topping", use: 0.08 }] },
+  { id: "m26", name: "Crinkled Cut Fries", price: 65, cat: "Snacks", image: "images/crinkled-cut-fries.jpg", ingredients: [{ name: "Fries", use: 0.15 }] },
+  { id: "m27", name: "Churro Bites", price: 65, cat: "Snacks", image: "images/churro-bites.jpg", ingredients: [{ name: "Churro Dough", use: 0.12 }] },
 ];
 
 const SEED_INVENTORY = [
@@ -157,6 +133,8 @@ const SEED_INVENTORY = [
   { name: "Churro Dough", category: "Frozen", stock: 2.0, unit: "kg", lowThreshold: 0.8 },
 ];
 
+const DEFAULT_TAX_RATE = 0.0825;
+
 async function seedIfEmpty() {
   const metaRow = await DB.get("meta", "seeded");
   if (metaRow && metaRow.value) return;
@@ -165,6 +143,7 @@ async function seedIfEmpty() {
   await DB.putAll("inventory", SEED_INVENTORY);
   await DB.put("meta", { key: "seeded", value: true });
   await DB.put("meta", { key: "orderCounter", value: 10023 });
+  await DB.put("meta", { key: "taxRate", value: DEFAULT_TAX_RATE });
 }
 
 async function nextOrderId() {
@@ -183,15 +162,12 @@ async function resetDatabase() {
   await seedIfEmpty();
 }
 
-// ---------------------------------------------------------------------------
-// Domain operations — these encode the actual workflow rules (the same
-// 5-step automated workflow described in the BPR report) on top of the
-// generic CRUD helpers above.
-// ---------------------------------------------------------------------------
+async function resetStockOnly() {
+  await DB.clear("inventory");
+  await DB.clear("approvals");
+  await DB.putAll("inventory", SEED_INVENTORY);
+}
 
-/** Step 4 + decision: deduct ingredients for a list of order lines, and
- *  create approval records for any ingredient that drops below threshold.
- *  Returns the list of ingredient names that triggered a low-stock alert. */
 async function deductInventoryForOrder(orderLines, menuById) {
   const inventory = await DB.getAll("inventory");
   const invByName = Object.fromEntries(inventory.map((i) => [i.name, i]));
@@ -229,15 +205,13 @@ async function deductInventoryForOrder(orderLines, menuById) {
   return lowNow;
 }
 
-/** Steps 1-3: create a new order record and persist it as sent to the
- *  kitchen. Called right after a successful cash payment at checkout. */
 async function createOrder({ items, subtotal, tax, total, payment, tableLabel }) {
   const id = await nextOrderId();
   const order = {
     id,
-    items, // [{ id, name, price, qty }]
+    items,
     subtotal, tax, total,
-    payment, // { method, tendered, change }
+    payment,
     table: tableLabel || "Walk-in",
     status: "sent_to_kitchen",
     createdAt: new Date().toISOString(),
@@ -262,8 +236,6 @@ async function approveRestock(alertId) {
   alert.approvedAt = new Date().toLocaleString("en-PH", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   await DB.put("approvals", alert);
 
-  // Restocking actually replenishes inventory back above threshold,
-  // closing the loop described in the BPR report's Step 5.
   const row = await DB.get("inventory", alert.ingredient);
   if (row) {
     row.stock = +(row.lowThreshold * 2.5).toFixed(2);

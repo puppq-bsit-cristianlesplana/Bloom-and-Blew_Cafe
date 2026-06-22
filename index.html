@@ -5,35 +5,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bloom &amp; Brew Café — POS</title>
 <link rel="stylesheet" href="style.css">
-
-<!--
-  =========================================================================
-  BLOO & BREW CAFÉ — POS / RESTAURANT MANAGEMENT MOCKUP
-  =========================================================================
-  A clickable, front-end-only mockup matching the supplied reference
-  layout: a fixed left sidebar plus five main views, switched via simple
-  client-side routing (no page reloads, no backend, no build step).
-
-  Pages (see <main id="app">):
-    1. #page-orders     -> New Order (Dine In)   — POS / Ordering module
-    2. #page-detail      -> Order Details         — single order drill-down
-    3. #page-kitchen      -> Kitchen Queue          — Kitchen Order Display module
-    4. #page-inventory    -> Inventory              — Inventory Management module
-    5. #page-approval     -> Manager Approval        — Approval Workflow module
-
-  Sidebar items with a data-page attribute switch pages via script.js.
-  "Order Details" is reached by clicking an order row/card, not from the
-  sidebar directly, matching the reference's breadcrumb-style navigation.
-  =========================================================================
--->
 </head>
 <body>
 
-  <div class="app-shell">
+  <!-- ===================================================================
+       STARTER / LANDING PAGE
+       =================================================================== -->
+  <div class="landing" id="landing-page">
+    <div class="landing-bg">
+      <img src="images/hero.jpg" alt="Bloom and Blew Cafe" class="landing-bg-img"
+           onerror="this.style.display='none'">
+    </div>
 
-    <!-- ===================================================================
-         SIDEBAR
-         =================================================================== -->
+    <div class="landing-overlay"></div>
+
+    <div class="landing-content">
+      <div class="landing-logo">☕</div>
+      <h1 class="landing-title">Bloom and Blew</h1>
+      <h2 class="landing-subtitle">Cafe</h2>
+      <p class="landing-tagline">Modern Comfort, Grassy Nature.<br>Where friends and family bond &amp; chill.</p>
+
+      <button class="landing-btn" id="enter-pos-btn" type="button">Enter POS System</button>
+
+      <div class="landing-cards">
+        <div class="landing-card">
+          <div class="landing-card-icon">☕</div>
+          <strong>Our Menu</strong>
+          <span>Discover artisanal coffee and delicious treats.</span>
+        </div>
+        <div class="landing-card">
+          <div class="landing-card-icon">🌿</div>
+          <strong>Our Story</strong>
+          <span>Where community grows over good coffee.</span>
+        </div>
+        <div class="landing-card">
+          <div class="landing-card-icon">📋</div>
+          <strong>Book a Table</strong>
+          <span>Plan your next family or friend gathering with us.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="landing-footer">
+      <span>📞 0955-6790</span>
+      <span>✉ info@bloomandblewcafe.com</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       POS SYSTEM (hidden until Enter POS is clicked)
+       =================================================================== -->
+  <div class="app-shell hidden" id="pos-app">
+
     <aside class="sidebar">
       <div class="brand">
         <span class="brand-icon">☕</span>
@@ -44,25 +67,25 @@
       </div>
 
       <nav class="nav">
-        <button class="nav-item" data-page="dashboard">
+        <button class="nav-item active" data-page="dashboard" type="button">
           <span class="nav-icon">⬚</span> Dashboard
         </button>
-        <button class="nav-item active" data-page="orders">
+        <button class="nav-item" data-page="orders" type="button">
           <span class="nav-icon">▤</span> Orders
         </button>
-        <button class="nav-item" data-page="kitchen">
+        <button class="nav-item" data-page="kitchen" type="button">
           <span class="nav-icon">▥</span> Kitchen
           <span class="nav-badge hidden" id="kitchen-badge">0</span>
         </button>
-        <button class="nav-item" data-page="inventory">
+        <button class="nav-item" data-page="inventory" type="button">
           <span class="nav-icon">▦</span> Inventory
           <span class="nav-badge hidden" id="inventory-badge">0</span>
         </button>
-        <button class="nav-item" data-page="approval">
+        <button class="nav-item" data-page="approval" type="button">
           <span class="nav-icon">⚑</span> Manager Approval
           <span class="nav-badge" id="approval-badge">2</span>
         </button>
-        <button class="nav-item" data-page="settings">
+        <button class="nav-item" data-page="settings" type="button">
           <span class="nav-icon">⚙</span> Settings
         </button>
       </nav>
@@ -77,23 +100,19 @@
       </div>
     </aside>
 
-    <!-- ===================================================================
-         MAIN CONTENT — one section per page, toggled by script.js
-         =================================================================== -->
     <main id="app" class="main">
 
-      <!-- ============================== PAGE 1: NEW ORDER ============================== -->
-      <section id="page-orders" class="page visible">
+      <!-- PAGE: NEW ORDER -->
+      <section id="page-orders" class="page">
         <header class="page-header">
           <h1>New Order (Dine In)</h1>
           <div class="page-header-actions">
-            <button class="btn btn-outline">Hold Order</button>
-            <button class="btn btn-primary">Order History</button>
+            <button class="btn btn-outline" type="button">Hold Order</button>
+            <button class="btn btn-primary" type="button">Order History</button>
           </div>
         </header>
 
         <div class="order-layout">
-          <!-- Menu column -->
           <div class="menu-col">
             <div class="search-bar">
               <span class="search-icon">⌕</span>
@@ -101,50 +120,44 @@
             </div>
 
             <div class="category-pills">
-              <button class="pill active" data-cat="All">All</button>
-              <button class="pill" data-cat="Coffee">Coffee</button>
-              <button class="pill" data-cat="Ice Shaken">Ice Shaken</button>
-              <button class="pill" data-cat="Non-Coffee">Non-Coffee</button>
-              <button class="pill" data-cat="Snacks">Snacks</button>
+              <button class="pill active" data-cat="All" type="button">All</button>
+              <button class="pill" data-cat="Coffee" type="button">Coffee</button>
+              <button class="pill" data-cat="Ice Shaken" type="button">Ice Shaken</button>
+              <button class="pill" data-cat="Non-Coffee" type="button">Non-Coffee</button>
+              <button class="pill" data-cat="Snacks" type="button">Snacks</button>
             </div>
 
-            <div class="menu-grid" id="menu-grid"><!-- populated by script.js --></div>
+            <div class="menu-grid" id="menu-grid"></div>
             <div class="pagination" id="menu-pagination"></div>
           </div>
 
-          <!-- Current order column -->
           <div class="order-col">
             <div class="order-col-head">
               <span>Current Order</span>
               <span class="table-chip">Table 5</span>
             </div>
 
-            <div class="order-items" id="order-items"><!-- populated by script.js --></div>
+            <div class="order-items" id="order-items"></div>
 
             <div class="order-totals">
               <div class="total-row"><span>Subtotal</span><span id="subtotal">₱0.00</span></div>
-              <div class="total-row"><span>Tax (8.25%)</span><span id="tax">₱0.00</span></div>
+              <div class="total-row"><span id="tax-label">Tax (8.25%)</span><span id="tax">₱0.00</span></div>
               <div class="total-row grand"><span>TOTAL</span><span id="grand-total">₱0.00</span></div>
             </div>
 
-            <button class="btn btn-text-only" id="clear-order">🗑 Clear</button>
-            <button class="btn btn-checkout" id="checkout-btn">Checkout <span id="checkout-total">₱0.00</span></button>
+            <button class="btn btn-text-only" id="clear-order" type="button">🗑 Clear</button>
+            <button class="btn btn-checkout" id="checkout-btn" type="button">Checkout <span id="checkout-total">₱0.00</span></button>
             <p class="cart-hint" id="cart-hint">Add items from the menu to start an order.</p>
           </div>
         </div>
       </section>
 
-      <!-- ===================================================================
-           CASH PAYMENT MODAL
-           Opened by the Checkout button. Cash is the only payment method
-           wired up end-to-end for this system; entering a tendered amount
-           computes change live and confirms the order on submit.
-           =================================================================== -->
+      <!-- CASH PAYMENT MODAL -->
       <div class="modal-overlay" id="payment-modal">
         <div class="modal-card">
           <div class="modal-head">
             <h2>Cash Payment</h2>
-            <button class="modal-close" id="modal-close">✕</button>
+            <button class="modal-close" id="modal-close" type="button">✕</button>
           </div>
 
           <div class="modal-total-row">
@@ -155,7 +168,7 @@
           <label class="modal-label" for="cash-tendered">Cash Tendered</label>
           <input type="number" id="cash-tendered" class="modal-input" placeholder="0.00" min="0" step="0.01">
 
-          <div class="quick-cash-row" id="quick-cash-row"><!-- populated by script.js --></div>
+          <div class="quick-cash-row" id="quick-cash-row"></div>
 
           <div class="modal-total-row change-row">
             <span>Change</span>
@@ -164,20 +177,20 @@
 
           <p class="modal-error" id="modal-error"></p>
 
-          <button class="btn btn-checkout" id="confirm-payment-btn">Confirm Payment &amp; Send to Kitchen</button>
+          <button class="btn btn-checkout" id="confirm-payment-btn" type="button">Confirm Payment &amp; Send to Kitchen</button>
         </div>
       </div>
 
-      <!-- ============================== PAGE 2: ORDER DETAILS ============================== -->
+      <!-- PAGE: ORDER DETAILS -->
       <section id="page-detail" class="page">
         <header class="page-header">
           <div>
-            <button class="back-link" data-page="orders">← Order Details</button>
+            <button class="back-link" data-page="orders" type="button">← Order Details</button>
             <p class="breadcrumb">Orders &gt; Order Details</p>
           </div>
           <div class="page-header-actions">
-            <button class="btn btn-outline">🖶 Print</button>
-            <button class="btn btn-outline">⋮ More</button>
+            <button class="btn btn-outline" type="button">🖶 Print</button>
+            <button class="btn btn-outline" type="button">⋮ More</button>
           </div>
         </header>
 
@@ -205,7 +218,7 @@
                 <thead>
                   <tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr>
                 </thead>
-                <tbody id="detail-items-body"><!-- populated by script.js --></tbody>
+                <tbody id="detail-items-body"></tbody>
               </table>
             </div>
 
@@ -225,57 +238,55 @@
             <div class="card">
               <h3 class="card-title">Payment Status <span class="status-pill" id="detail-payment-pill">—</span></h3>
               <div class="total-row"><span>Subtotal</span><span id="detail-subtotal">₱0.00</span></div>
-              <div class="total-row"><span>Tax (8.25%)</span><span id="detail-tax">₱0.00</span></div>
+              <div class="total-row"><span id="detail-tax-label">Tax (8.25%)</span><span id="detail-tax">₱0.00</span></div>
               <div class="total-row grand"><span>TOTAL</span><span id="detail-total">₱0.00</span></div>
             </div>
 
             <div class="card">
               <h3 class="card-title">Order Status</h3>
-              <ul class="status-timeline" id="detail-status-timeline">
-                <!-- populated by script.js -->
-              </ul>
+              <ul class="status-timeline" id="detail-status-timeline"></ul>
             </div>
 
-            <button class="btn btn-cancel">Cancel Order</button>
+            <button class="btn btn-cancel" type="button">Cancel Order</button>
           </div>
         </div>
       </section>
 
-      <!-- ============================== PAGE 3: KITCHEN QUEUE ============================== -->
+      <!-- PAGE: KITCHEN QUEUE -->
       <section id="page-kitchen" class="page">
         <header class="page-header">
           <h1>☕ Kitchen Queue</h1>
           <div class="page-header-actions">
-            <button class="btn btn-outline">Filter ⌄</button>
-            <button class="btn btn-icon">🔊</button>
+            <button class="btn btn-outline" type="button">Filter ⌄</button>
+            <button class="btn btn-icon" type="button">🔊</button>
           </div>
         </header>
 
         <div class="queue-filter-pills">
-          <button class="pill active" data-filter="All">All (<span id="count-all">0</span>)</button>
-          <button class="pill pill-new" data-filter="sent_to_kitchen">New (<span id="count-new">0</span>)</button>
-          <button class="pill pill-prep" data-filter="preparing">Preparing (<span id="count-prep">0</span>)</button>
-          <button class="pill pill-ready" data-filter="ready">Ready (<span id="count-ready">0</span>)</button>
+          <button class="pill active" data-filter="All" type="button">All (<span id="count-all">0</span>)</button>
+          <button class="pill pill-new" data-filter="sent_to_kitchen" type="button">New (<span id="count-new">0</span>)</button>
+          <button class="pill pill-prep" data-filter="preparing" type="button">Preparing (<span id="count-prep">0</span>)</button>
+          <button class="pill pill-ready" data-filter="ready" type="button">Ready (<span id="count-ready">0</span>)</button>
         </div>
 
-        <div class="kitchen-grid" id="kitchen-grid"><!-- populated by script.js --></div>
+        <div class="kitchen-grid" id="kitchen-grid"></div>
 
         <p class="last-updated">Last updated: <span id="kitchen-updated">—</span> 🔄</p>
       </section>
 
-      <!-- ============================== PAGE 4: INVENTORY ============================== -->
+      <!-- PAGE: INVENTORY -->
       <section id="page-inventory" class="page">
         <header class="page-header">
           <h1>📦 Inventory</h1>
           <div class="page-header-actions">
-            <button class="btn btn-primary">+ Add Item</button>
+            <button class="btn btn-primary" type="button">+ Add Item</button>
           </div>
         </header>
 
         <div class="queue-filter-pills">
-          <button class="pill active" data-invfilter="All">All Items</button>
-          <button class="pill pill-low" data-invfilter="Low Stock">Low Stock (<span id="count-low">0</span>)</button>
-          <button class="pill pill-out" data-invfilter="Out of Stock">Out of Stock (<span id="count-out">0</span>)</button>
+          <button class="pill active" data-invfilter="All" type="button">All Items</button>
+          <button class="pill pill-low" data-invfilter="Low Stock" type="button">Low Stock (<span id="count-low">0</span>)</button>
+          <button class="pill pill-out" data-invfilter="Out of Stock" type="button">Out of Stock (<span id="count-out">0</span>)</button>
         </div>
 
         <div class="card">
@@ -283,29 +294,27 @@
             <thead>
               <tr><th>Item</th><th>Category</th><th>Stock</th><th>Unit</th><th>Status</th></tr>
             </thead>
-            <tbody id="inventory-body"><!-- populated by script.js --></tbody>
+            <tbody id="inventory-body"></tbody>
           </table>
         </div>
-
       </section>
 
-      <!-- ============================== PAGE 5: MANAGER APPROVAL ============================== -->
+      <!-- PAGE: MANAGER APPROVAL -->
       <section id="page-approval" class="page">
         <header class="page-header">
           <h1>⚑ Manager Approval <span class="nav-badge inline-badge" id="approval-page-badge">0</span></h1>
-          <button class="btn btn-icon" id="approval-refresh">🔄</button>
+          <button class="btn btn-icon" id="approval-refresh" type="button">🔄</button>
         </header>
 
         <div class="queue-filter-pills">
-          <button class="pill pill-needed active" data-appfilter="needed">Approval Needed (<span id="count-needed">0</span>)</button>
-          <button class="pill pill-approved" data-appfilter="approved">Approved (<span id="count-approved">0</span>)</button>
+          <button class="pill pill-needed active" data-appfilter="needed" type="button">Approval Needed (<span id="count-needed">0</span>)</button>
+          <button class="pill pill-approved" data-appfilter="approved" type="button">Approved (<span id="count-approved">0</span>)</button>
         </div>
 
-        <div class="approval-list" id="approval-list"><!-- populated by script.js --></div>
-
+        <div class="approval-list" id="approval-list"></div>
       </section>
 
-      <!-- ============================== PLACEHOLDER PAGES ============================== -->
+      <!-- PAGE: DASHBOARD -->
       <section id="page-dashboard" class="page">
         <header class="page-header">
           <h1>Dashboard</h1>
@@ -317,13 +326,58 @@
         <div class="dashboard-menu-grid" id="dashboard-menu-grid"></div>
         <div class="pagination" id="dashboard-pagination"></div>
       </section>
-      <section id="page-customers" class="page">
-        <header class="page-header"><h1>Customers</h1></header>
-        <div class="card"><p class="muted">Customers view is not part of this mockup's scope.</p></div>
-      </section>
+
+      <!-- PAGE: SETTINGS -->
       <section id="page-settings" class="page">
-        <header class="page-header"><h1>Settings</h1></header>
-        <div class="card"><p class="muted">Settings view is not part of this mockup's scope.</p></div>
+        <header class="page-header">
+          <h1>⚙ Settings</h1>
+        </header>
+
+        <div class="settings-grid">
+          <div class="card">
+            <h3 class="card-title">Tax Rate</h3>
+            <div class="settings-row">
+              <label class="settings-label" for="settings-tax">Tax Percentage (%)</label>
+              <div class="settings-input-row">
+                <input type="number" id="settings-tax" class="settings-input" min="0" max="100" step="0.01">
+                <button class="btn btn-primary" id="save-tax-btn" type="button">Save</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Menu Item Prices</h3>
+            <table class="items-table settings-price-table">
+              <thead>
+                <tr><th>Item</th><th>Category</th><th>Price (₱)</th></tr>
+              </thead>
+              <tbody id="settings-prices-body"></tbody>
+            </table>
+            <div class="settings-actions">
+              <button class="btn btn-primary" id="save-prices-btn" type="button">Save All Prices</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Data Management</h3>
+            <div class="settings-data-section">
+              <div class="settings-data-item">
+                <div>
+                  <strong>Reset Stock to Default</strong>
+                  <p class="muted">Restores all inventory to starting levels and clears alerts. Orders and menu prices are kept.</p>
+                </div>
+                <button class="btn btn-outline" id="reset-stock-btn" type="button">Reset Stock</button>
+              </div>
+              <div class="settings-data-item">
+                <div>
+                  <strong>Reset All Data</strong>
+                  <p class="muted">Clears all orders, inventory, prices and resets everything to factory defaults.</p>
+                </div>
+                <button class="btn btn-cancel btn-auto-width" id="reset-all-btn" type="button">Reset All</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
     </main>
