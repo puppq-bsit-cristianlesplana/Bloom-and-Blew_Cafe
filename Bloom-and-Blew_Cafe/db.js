@@ -21,7 +21,7 @@
    =========================================================================== */
 
 const DB_NAME = "bloo_brew_pos";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let dbInstance = null;
 
 function openDB() {
@@ -31,22 +31,15 @@ function openDB() {
 
     req.onupgradeneeded = (event) => {
       const db = event.target.result;
-      if (!db.objectStoreNames.contains("menuItems")) {
-        db.createObjectStore("menuItems", { keyPath: "id" });
+      for (const name of db.objectStoreNames) {
+        db.deleteObjectStore(name);
       }
-      if (!db.objectStoreNames.contains("inventory")) {
-        db.createObjectStore("inventory", { keyPath: "name" });
-      }
-      if (!db.objectStoreNames.contains("orders")) {
-        const orderStore = db.createObjectStore("orders", { keyPath: "id" });
-        orderStore.createIndex("status", "status", { unique: false });
-      }
-      if (!db.objectStoreNames.contains("approvals")) {
-        db.createObjectStore("approvals", { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains("meta")) {
-        db.createObjectStore("meta", { keyPath: "key" });
-      }
+      db.createObjectStore("menuItems", { keyPath: "id" });
+      db.createObjectStore("inventory", { keyPath: "name" });
+      const orderStore = db.createObjectStore("orders", { keyPath: "id" });
+      orderStore.createIndex("status", "status", { unique: false });
+      db.createObjectStore("approvals", { keyPath: "id" });
+      db.createObjectStore("meta", { keyPath: "key" });
     };
 
     req.onsuccess = (event) => {
@@ -104,29 +97,64 @@ const DB = {
 // starting inventory levels. Seeded once, on first run only.
 // ---------------------------------------------------------------------------
 const SEED_MENU = [
-  { id: "m1", name: "Iced Latte", price: 120, cat: "Coffee", emoji: "🧊", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
-  { id: "m2", name: "Cappuccino", price: 115, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.1 }] },
-  { id: "m3", name: "Americano", price: 95, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }] },
-  { id: "m4", name: "Caramel Macchiato", price: 135, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
-  { id: "m5", name: "Croissant", price: 85, cat: "Pastries", emoji: "🥐", ingredients: [{ name: "Croissant Dough", use: 0.12 }] },
-  { id: "m6", name: "Blueberry Muffin", price: 80, cat: "Pastries", emoji: "🧁", ingredients: [{ name: "Flour", use: 0.1 }] },
-  { id: "m7", name: "Cinnamon Roll", price: 90, cat: "Pastries", emoji: "🥨", ingredients: [{ name: "Flour", use: 0.12 }] },
-  { id: "m8", name: "Chicken Sandwich", price: 150, cat: "Sandwiches", emoji: "🥪", ingredients: [{ name: "Chicken Breast", use: 0.18 }, { name: "Lettuce", use: 1 }] },
-  { id: "m9", name: "Ham & Cheese Panini", price: 145, cat: "Sandwiches", emoji: "🥪", ingredients: [{ name: "Flour", use: 0.08 }] },
-  { id: "m10", name: "Iced Tea", price: 70, cat: "Cold Drinks", emoji: "🧊", ingredients: [] },
-  { id: "m11", name: "Lemonade", price: 75, cat: "Cold Drinks", emoji: "🍋", ingredients: [] },
-  { id: "m12", name: "Chocolate Cake", price: 135, cat: "Desserts", emoji: "🍫", ingredients: [{ name: "Cream Cheese", use: 0.1 }] },
-  { id: "m13", name: "Cheesecake", price: 140, cat: "Desserts", emoji: "🍰", ingredients: [{ name: "Cream Cheese", use: 0.15 }] },
+  // Coffee
+  { id: "m1", name: "Americano", price: 45, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }] },
+  { id: "m2", name: "Cafe Latte", price: 55, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
+  { id: "m3", name: "Vanilla Latte", price: 59, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Vanilla Syrup", use: 0.03 }] },
+  { id: "m4", name: "Hazelnut Latte", price: 59, cat: "Coffee", emoji: "🌰", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.03 }] },
+  { id: "m5", name: "Spanish Latte", price: 59, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.12 }, { name: "Condensed Milk", use: 0.03 }] },
+  { id: "m6", name: "Caramel Macchiato", price: 59, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
+  { id: "m7", name: "Salted Caramel", price: 59, cat: "Coffee", emoji: "🧂", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
+  { id: "m8", name: "White Mocha", price: 59, cat: "Coffee", emoji: "☕", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "White Choco Sauce", use: 0.03 }] },
+  { id: "m9", name: "Cafe Mocha", price: 59, cat: "Coffee", emoji: "🍫", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Choco Sauce", use: 0.03 }] },
+  { id: "m10", name: "Coffee Matcha", price: 59, cat: "Coffee", emoji: "🍵", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.12 }] },
+  { id: "m11", name: "Hazelnut Mocha", price: 59, cat: "Coffee", emoji: "🌰", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.02 }, { name: "Choco Sauce", use: 0.02 }] },
+  // Ice Shaken Drinks
+  { id: "m12", name: "Berry Lemonade", price: 55, cat: "Ice Shaken", emoji: "🍓", ingredients: [{ name: "Berry Mix", use: 0.05 }, { name: "Lemon Juice", use: 0.03 }] },
+  { id: "m13", name: "Honey Calamansi", price: 55, cat: "Ice Shaken", emoji: "🍋", ingredients: [{ name: "Honey", use: 0.03 }, { name: "Calamansi Juice", use: 0.05 }] },
+  { id: "m14", name: "Mango Hibiscus", price: 55, cat: "Ice Shaken", emoji: "🥭", ingredients: [{ name: "Mango Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
+  { id: "m15", name: "Strawberry Hibiscus", price: 55, cat: "Ice Shaken", emoji: "🌺", ingredients: [{ name: "Strawberry Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
+  // Non-Coffee Drinks
+  { id: "m16", name: "Ube Latte", price: 59, cat: "Non-Coffee", emoji: "🟣", ingredients: [{ name: "Ube Powder", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m17", name: "Matcha Latte", price: 59, cat: "Non-Coffee", emoji: "🍵", ingredients: [{ name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m18", name: "Dark Choco", price: 59, cat: "Non-Coffee", emoji: "🍫", ingredients: [{ name: "Choco Sauce", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m19", name: "Oreo Milk", price: 59, cat: "Non-Coffee", emoji: "🥛", ingredients: [{ name: "Oreo Crumbs", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m20", name: "Strawberry Milk", price: 59, cat: "Non-Coffee", emoji: "🍓", ingredients: [{ name: "Strawberry Puree", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m21", name: "Blueberry Milk", price: 59, cat: "Non-Coffee", emoji: "🫐", ingredients: [{ name: "Berry Mix", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m22", name: "Mango Milk", price: 59, cat: "Non-Coffee", emoji: "🥭", ingredients: [{ name: "Mango Puree", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  // Snacks
+  { id: "m23", name: "2 pcs. Hashbrown", price: 55, cat: "Snacks", emoji: "🥔", ingredients: [{ name: "Hashbrown Patties", use: 2 }] },
+  { id: "m24", name: "6 pcs. Chicken Nuggets", price: 59, cat: "Snacks", emoji: "🍗", ingredients: [{ name: "Chicken Nuggets", use: 6 }] },
+  { id: "m25", name: "Cheesy Beef Nachos", price: 65, cat: "Snacks", emoji: "🧀", ingredients: [{ name: "Nacho Chips", use: 1 }, { name: "Beef Topping", use: 0.08 }] },
+  { id: "m26", name: "Crinkled Cut Fries", price: 65, cat: "Snacks", emoji: "🍟", ingredients: [{ name: "Fries", use: 0.15 }] },
+  { id: "m27", name: "Churro Bites", price: 65, cat: "Snacks", emoji: "🍩", ingredients: [{ name: "Churro Dough", use: 0.12 }] },
 ];
 
 const SEED_INVENTORY = [
-  { name: "Espresso Beans", category: "Pantry", stock: 2.2, unit: "kg", lowThreshold: 1.0 },
-  { name: "Whole Milk", category: "Dairy", stock: 1.5, unit: "L", lowThreshold: 1.0 },
-  { name: "Croissant Dough", category: "Pastry", stock: 0.8, unit: "kg", lowThreshold: 1.0 },
-  { name: "Flour", category: "Pantry", stock: 10.0, unit: "kg", lowThreshold: 2.0 },
-  { name: "Chicken Breast", category: "Meat", stock: 5.2, unit: "kg", lowThreshold: 1.5 },
-  { name: "Lettuce", category: "Produce", stock: 3.0, unit: "pcs", lowThreshold: 2.0 },
-  { name: "Cream Cheese", category: "Dairy", stock: 0.0, unit: "kg", lowThreshold: 0.5 },
+  { name: "Espresso Beans", category: "Coffee", stock: 3.0, unit: "kg", lowThreshold: 1.0 },
+  { name: "Whole Milk", category: "Dairy", stock: 8.0, unit: "L", lowThreshold: 3.0 },
+  { name: "Vanilla Syrup", category: "Syrup", stock: 1.5, unit: "L", lowThreshold: 0.5 },
+  { name: "Hazelnut Syrup", category: "Syrup", stock: 1.2, unit: "L", lowThreshold: 0.5 },
+  { name: "Caramel Sauce", category: "Sauce", stock: 1.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Choco Sauce", category: "Sauce", stock: 1.0, unit: "L", lowThreshold: 0.4 },
+  { name: "White Choco Sauce", category: "Sauce", stock: 0.8, unit: "L", lowThreshold: 0.4 },
+  { name: "Condensed Milk", category: "Dairy", stock: 2.0, unit: "L", lowThreshold: 0.8 },
+  { name: "Matcha Powder", category: "Powder", stock: 0.5, unit: "kg", lowThreshold: 0.2 },
+  { name: "Ube Powder", category: "Powder", stock: 0.4, unit: "kg", lowThreshold: 0.15 },
+  { name: "Oreo Crumbs", category: "Topping", stock: 0.6, unit: "kg", lowThreshold: 0.2 },
+  { name: "Berry Mix", category: "Fruit", stock: 1.0, unit: "kg", lowThreshold: 0.3 },
+  { name: "Strawberry Puree", category: "Fruit", stock: 0.8, unit: "kg", lowThreshold: 0.3 },
+  { name: "Mango Puree", category: "Fruit", stock: 0.8, unit: "kg", lowThreshold: 0.3 },
+  { name: "Lemon Juice", category: "Fruit", stock: 1.0, unit: "L", lowThreshold: 0.3 },
+  { name: "Calamansi Juice", category: "Fruit", stock: 0.8, unit: "L", lowThreshold: 0.3 },
+  { name: "Honey", category: "Sweetener", stock: 0.6, unit: "L", lowThreshold: 0.2 },
+  { name: "Hibiscus Tea", category: "Tea", stock: 2.0, unit: "L", lowThreshold: 0.5 },
+  { name: "Hashbrown Patties", category: "Frozen", stock: 30, unit: "pcs", lowThreshold: 10 },
+  { name: "Chicken Nuggets", category: "Frozen", stock: 50, unit: "pcs", lowThreshold: 18 },
+  { name: "Nacho Chips", category: "Snack", stock: 15, unit: "packs", lowThreshold: 5 },
+  { name: "Beef Topping", category: "Meat", stock: 1.5, unit: "kg", lowThreshold: 0.5 },
+  { name: "Fries", category: "Frozen", stock: 3.0, unit: "kg", lowThreshold: 1.0 },
+  { name: "Churro Dough", category: "Frozen", stock: 2.0, unit: "kg", lowThreshold: 0.8 },
 ];
 
 async function seedIfEmpty() {
