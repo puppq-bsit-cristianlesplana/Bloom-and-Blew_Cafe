@@ -313,9 +313,12 @@ document.getElementById("confirm-payment-btn").addEventListener("click", async (
 });
 
 // --- 4. Order Details -------------------------------------------------------
+let currentDetailOrderId = null;
+
 async function showOrderDetail(orderId) {
   const order = await DB.get("orders", orderId);
   if (!order) return;
+  currentDetailOrderId = orderId;
 
   document.getElementById("detail-order-id").textContent = order.id;
   document.getElementById("detail-table").textContent = order.table;
@@ -377,10 +380,15 @@ async function showOrderDetail(orderId) {
 
 // --- 5. Kitchen Queue -------------------------------------------------------
 let kitchenFilter = "All";
+let kitchenSort = "newest";
 
 async function renderKitchen() {
   const orders = await DB.getAll("orders");
-  orders.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  if (kitchenSort === "newest") {
+    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } else {
+    orders.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  }
 
   document.getElementById("count-all").textContent = orders.filter((o) => o.status !== "completed").length;
   document.getElementById("count-new").textContent = orders.filter((o) => o.status === "sent_to_kitchen").length;
@@ -708,4 +716,265 @@ document.getElementById("reset-all-btn").addEventListener("click", async () => {
   await refreshKitchenBadge();
   await refreshInventoryBadge();
   alert("All data reset to factory defaults.");
+});
+
+// --- 12. Hold Order ---------------------------------------------------------
+let heldOrders = JSON.parse(localStorage.getItem("heldOrders") || "[]");
+
+function updateHoldBadges() {
+  const count = heldOrders.length;
+  const b1 = document.getElementById("hold-badge");
+  const b2 = document.getElementById("hold-badge-modal");
+  [b1, b2].forEach(function (b) {
+    if (!b) return;
+    b.textContent = count;
+    b.classList.toggle("hidden", count === 0);
+  });
+}
+updateHoldBadges();
+
+document.getElementById("hold-order-btn").addEventListener("click", function () {
+  if (cart.length === 0) { alert("No items in cart to hold."); return; }
+  heldOrders.push({
+    id: Date.now(),
+    table: "Table 5",
+    items: cart.map(function (c) { return { id: c.id, name: c.name, price: c.price, qty: c.qty }; }),
+    time: new Date().toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })
+  });
+  localStorage.setItem("heldOrders", JSON.stringify(heldOrders));
+  cart.length = 0;
+  renderCart();
+  updateHoldBadges();
+  alert("Order held. You can resume it from Order History.");
+});
+
+// --- 13. Order History modal ------------------------------------------------
+var historyModal = document.getElementById("history-modal");
+var historyTab = "completed";
+
+document.getElementById("order-history-btn").addEventListener("click", function () {
+  historyTab = "completed";
+  renderHistoryModal();
+  historyModal.classList.add("visible");
+});
+document.getElementById("history-close").addEventListener("click", function () {
+  historyModal.classList.remove("visible");
+});
+historyModal.addEventListener("click", function (e) {
+  if (e.target === historyModal) historyModal.classList.remove("visible");
+});
+
+document.getElementById("tab-completed").addEventListener("click", function () {
+  historyTab = "completed";
+  document.getElementById("tab-completed").classList.add("active");
+  document.getElementById("tab-held").classList.remove("active");
+  renderHistoryModal();
+});
+document.getElementById("tab-held").addEventListener("click", function () {
+  historyTab = "held";
+  document.getElementById("tab-held").classList.add("active");
+  document.getElementById("tab-completed").classList.remove("active");
+  renderHistoryModal();
+});
+
+async function renderHistoryModal() {
+  updateHoldBadges();
+  var list = document.getElementById("history-list");
+  list.innerHTML = "";
+
+  if (historyTab === "completed") {
+    var orders = await DB.getAll("orders");
+    orders.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+    if (orders.length === 0) {
+      list.innerHTML = '<div class="history-empty">No orders yet.</div>';
+      return;
+    }
+    orders.forEach(function (o) {
+      var card = document.createElement("div");
+      card.className = "history-order";
+      var statusLabel = { sent_to_kitchen: "Sent to Kitchen", preparing: "Preparing", ready: "Ready", completed: "Completed" };
+      card.innerHTML =
+        '<div class="history-order-head"><span>#' + o.id + '</span><span>' + (statusLabel[o.status] || o.status) + '</span></div>' +
+        '<div class="history-order-meta">' + o.table + ' · ' + o.timeLabel + ' · ₱' + o.total.toFixed(2) + '</div>' +
+        '<div class="history-order-items">' + o.items.map(function (i) { return i.name + " x" + i.qty; }).join(", ") + '</div>';
+      card.addEventListener("click", function () {
+        historyModal.classList.remove("visible");
+        showOrderDetail(o.id);
+      });
+      list.appendChild(card);
+    });
+  } else {
+    if (heldOrders.length === 0) {
+      list.innerHTML = '<div class="history-empty">No held orders.</div>';
+      return;
+    }
+    heldOrders.forEach(function (h, idx) {
+      var card = document.createElement("div");
+      card.className = "history-order";
+      card.innerHTML =
+        '<div class="history-order-head"><span>Held #' + (idx + 1) + '</span><span>' + h.time + '</span></div>' +
+        '<div class="history-order-meta">' + h.table + '</div>' +
+        '<div class="history-order-items">' + h.items.map(function (i) { return i.name + " x" + i.qty; }).join(", ") + '</div>' +
+        '<div class="held-order-actions">' +
+          '<button class="btn btn-primary" data-resume="' + idx + '" type="button">Resume</button>' +
+          '<button class="btn btn-outline" data-discard="' + idx + '" type="button">Discard</button>' +
+        '</div>';
+      var resumeBtn = card.querySelector("[data-resume]");
+      resumeBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var held = heldOrders.splice(idx, 1)[0];
+        localStorage.setItem("heldOrders", JSON.stringify(heldOrders));
+        cart.length = 0;
+        held.items.forEach(function (item) { cart.push(item); });
+        renderCart();
+        updateHoldBadges();
+        historyModal.classList.remove("visible");
+        showPage("orders");
+      });
+      var discardBtn = card.querySelector("[data-discard]");
+      discardBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (!confirm("Discard this held order?")) return;
+        heldOrders.splice(idx, 1);
+        localStorage.setItem("heldOrders", JSON.stringify(heldOrders));
+        updateHoldBadges();
+        renderHistoryModal();
+      });
+      list.appendChild(card);
+    });
+  }
+}
+
+// --- 14. Kitchen sort -------------------------------------------------------
+document.getElementById("kitchen-sort").addEventListener("change", function () {
+  kitchenSort = this.value;
+  renderKitchen();
+});
+document.getElementById("kitchen-refresh-btn").addEventListener("click", function () {
+  renderKitchen();
+});
+
+// --- 15. Add Inventory Item -------------------------------------------------
+var addItemModal = document.getElementById("add-item-modal");
+
+document.getElementById("add-inventory-btn").addEventListener("click", function () {
+  document.getElementById("inv-name").value = "";
+  document.getElementById("inv-category").value = "";
+  document.getElementById("inv-stock").value = "";
+  document.getElementById("inv-unit").value = "";
+  document.getElementById("inv-threshold").value = "";
+  document.getElementById("add-item-error").textContent = "";
+  addItemModal.classList.add("visible");
+});
+document.getElementById("add-item-close").addEventListener("click", function () {
+  addItemModal.classList.remove("visible");
+});
+addItemModal.addEventListener("click", function (e) {
+  if (e.target === addItemModal) addItemModal.classList.remove("visible");
+});
+
+document.getElementById("add-item-save").addEventListener("click", async function () {
+  var name = document.getElementById("inv-name").value.trim();
+  var category = document.getElementById("inv-category").value.trim();
+  var stock = parseFloat(document.getElementById("inv-stock").value);
+  var unit = document.getElementById("inv-unit").value.trim();
+  var threshold = parseFloat(document.getElementById("inv-threshold").value);
+  var errEl = document.getElementById("add-item-error");
+
+  if (!name || !category || !unit) {
+    errEl.textContent = "Name, category, and unit are required.";
+    return;
+  }
+  if (isNaN(stock) || stock < 0) { errEl.textContent = "Enter a valid stock amount."; return; }
+  if (isNaN(threshold) || threshold < 0) { errEl.textContent = "Enter a valid threshold."; return; }
+
+  await DB.put("inventory", { name: name, category: category, stock: stock, unit: unit, lowThreshold: threshold });
+  addItemModal.classList.remove("visible");
+  renderInventory();
+  await refreshInventoryBadge();
+  alert("Item '" + name + "' added to inventory.");
+});
+
+// --- 16. Print Receipt ------------------------------------------------------
+document.getElementById("print-order-btn").addEventListener("click", async function () {
+  if (!currentDetailOrderId) return;
+  var order = await DB.get("orders", currentDetailOrderId);
+  if (!order) return;
+
+  var pctLabel = (taxRate * 100).toFixed(2).replace(/\.?0+$/, "");
+  var receiptWin = window.open("", "_blank", "width=360,height=600");
+  var html = '<html><head><title>Receipt</title>' +
+    '<style>body{font-family:monospace;padding:20px;font-size:13px;color:#111}' +
+    'h2{text-align:center;margin:0 0 4px}p.sub{text-align:center;margin:0 0 16px;font-size:11px}' +
+    'hr{border:none;border-top:1px dashed #999;margin:10px 0}' +
+    'table{width:100%;border-collapse:collapse}td{padding:3px 0}' +
+    '.r{text-align:right}.b{font-weight:bold}.total{font-size:15px}' +
+    '.footer{text-align:center;margin-top:16px;font-size:11px;color:#666}</style></head><body>' +
+    '<h2>Bloom and Blew Cafe</h2>' +
+    '<p class="sub">Official Receipt</p><hr>' +
+    '<p>Order: <b>#' + order.id + '</b></p>' +
+    '<p>' + order.table + ' · ' + new Date(order.createdAt).toLocaleString("en-PH") + '</p>' +
+    '<p>Cashier: Nicole Melican</p><hr>' +
+    '<table>';
+  order.items.forEach(function (item) {
+    html += '<tr><td>' + item.name + ' x' + item.qty + '</td><td class="r">₱' + (item.price * item.qty).toFixed(2) + '</td></tr>';
+  });
+  html += '</table><hr>' +
+    '<table>' +
+    '<tr><td>Subtotal</td><td class="r">₱' + order.subtotal.toFixed(2) + '</td></tr>' +
+    '<tr><td>Tax (' + pctLabel + '%)</td><td class="r">₱' + order.tax.toFixed(2) + '</td></tr>' +
+    '<tr class="b total"><td>TOTAL</td><td class="r">₱' + order.total.toFixed(2) + '</td></tr>' +
+    '</table><hr>' +
+    '<table>' +
+    '<tr><td>Cash</td><td class="r">₱' + order.payment.tendered.toFixed(2) + '</td></tr>' +
+    '<tr><td>Change</td><td class="r">₱' + order.payment.change.toFixed(2) + '</td></tr>' +
+    '</table><hr>' +
+    '<p class="footer">Thank you for visiting!<br>Please come again.</p>' +
+    '</body></html>';
+  receiptWin.document.write(html);
+  receiptWin.document.close();
+  receiptWin.focus();
+  setTimeout(function () { receiptWin.print(); }, 400);
+});
+
+// --- 17. Move Status (advance order to next step) ---------------------------
+document.getElementById("move-status-btn").addEventListener("click", async function () {
+  if (!currentDetailOrderId) return;
+  var order = await DB.get("orders", currentDetailOrderId);
+  if (!order) return;
+
+  var flow = ["sent_to_kitchen", "preparing", "ready", "completed"];
+  var labels = { sent_to_kitchen: "Preparing", preparing: "Ready", ready: "Completed" };
+  var idx = flow.indexOf(order.status);
+
+  if (idx < 0 || idx >= flow.length - 1) {
+    alert("This order is already completed.");
+    return;
+  }
+
+  var nextStatus = flow[idx + 1];
+  if (!confirm("Move order #" + order.id + " to '" + labels[order.status] + "'?")) return;
+
+  await updateOrderStatus(order.id, nextStatus);
+  await refreshKitchenBadge();
+  showOrderDetail(order.id);
+});
+
+// --- 18. Cancel Order -------------------------------------------------------
+document.getElementById("cancel-order-btn").addEventListener("click", async function () {
+  if (!currentDetailOrderId) return;
+  var order = await DB.get("orders", currentDetailOrderId);
+  if (!order) return;
+
+  if (order.status === "completed") {
+    alert("Cannot cancel a completed order.");
+    return;
+  }
+
+  if (!confirm("Cancel order #" + order.id + "? This will remove it permanently.")) return;
+
+  await DB.delete("orders", order.id);
+  await refreshKitchenBadge();
+  showPage("orders");
+  alert("Order #" + order.id + " has been cancelled.");
 });
