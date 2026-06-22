@@ -280,6 +280,20 @@ body {
 .held-order-actions { display: flex; gap: 6px; margin-top: 8px; }
 .held-order-actions .btn { font-size: 12px; padding: 5px 10px; }
 
+/* ICED / HOT PICKER */
+.temp-modal-card { width: 320px; text-align: center; }
+.temp-modal-item { font-size: 16px; font-weight: 700; margin: 0 0 18px; color: var(--text-primary); }
+.temp-modal-buttons { display: flex; gap: 12px; }
+.temp-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 18px 12px; border-radius: var(--radius-md); font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s ease; border: 2px solid transparent;
+}
+.temp-btn-iced { background: #E0F2FE; color: #0369A1; border-color: #7DD3FC; }
+.temp-btn-iced:hover { background: #BAE6FD; border-color: #0369A1; }
+.temp-btn-hot { background: #FEF3C7; color: #B45309; border-color: #FCD34D; }
+.temp-btn-hot:hover { background: #FDE68A; border-color: #B45309; }
+
 .hold-badge {
   background: #2563EB; color: #fff; font-size: 10px; font-weight: 700;
   border-radius: 999px; padding: 1px 6px; margin-left: 4px; vertical-align: middle;

@@ -164,10 +164,50 @@ function renderMenu() {
   renderPagination("menu-pagination", menuPage, totalPages, (p) => { menuPage = p; renderMenu(); });
 }
 
+var tempModal = document.getElementById("temp-modal");
+var pendingTempItem = null;
+
+document.getElementById("temp-modal-close").addEventListener("click", function () {
+  tempModal.classList.remove("visible");
+  pendingTempItem = null;
+});
+tempModal.addEventListener("click", function (e) {
+  if (e.target === tempModal) { tempModal.classList.remove("visible"); pendingTempItem = null; }
+});
+
+document.getElementById("temp-btn-iced").addEventListener("click", function () {
+  if (!pendingTempItem) return;
+  addToCartWithVariant(pendingTempItem, "Iced", 5);
+  tempModal.classList.remove("visible");
+  pendingTempItem = null;
+});
+document.getElementById("temp-btn-hot").addEventListener("click", function () {
+  if (!pendingTempItem) return;
+  addToCartWithVariant(pendingTempItem, "Hot", 0);
+  tempModal.classList.remove("visible");
+  pendingTempItem = null;
+});
+
 function addToCart(item) {
-  const existing = cart.find((c) => c.id === item.id);
+  if (item.cat === "Coffee") {
+    pendingTempItem = item;
+    document.getElementById("temp-modal-item-name").textContent = item.name;
+    tempModal.classList.add("visible");
+    return;
+  }
+  addToCartDirect(item.id, item.name, item.price);
+}
+
+function addToCartWithVariant(item, variant, extra) {
+  var cartId = item.id + "-" + variant.toLowerCase();
+  var cartName = item.name + " (" + variant + ")";
+  addToCartDirect(cartId, cartName, item.price + extra);
+}
+
+function addToCartDirect(id, name, price) {
+  const existing = cart.find((c) => c.id === id);
   if (existing) existing.qty += 1;
-  else cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
+  else cart.push({ id: id, name: name, price: price, qty: 1 });
   renderCart();
 }
 
