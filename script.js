@@ -49,7 +49,7 @@ document.getElementById("enter-pos-btn").addEventListener("click", async () => {
   if (!bootDone) await bootPromise;
   document.getElementById("landing-page").classList.add("hidden");
   document.getElementById("pos-app").classList.remove("hidden");
-  showPage("dashboard");
+  showPage("orders");
 });
 
 function updateTaxLabels() {
