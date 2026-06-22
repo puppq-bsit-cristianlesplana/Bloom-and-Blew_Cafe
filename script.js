@@ -2,13 +2,6 @@
    BLOOM & BREW CAFÉ — POS SCRIPT
    =========================================================================== */
 
-// --- Landing page -----------------------------------------------------------
-document.getElementById("enter-pos-btn").addEventListener("click", () => {
-  document.getElementById("landing-page").classList.add("hidden");
-  document.getElementById("pos-app").classList.remove("hidden");
-  showPage("dashboard");
-});
-
 let MENU = [];
 let menuById = {};
 let activeCat = "All";
@@ -18,6 +11,7 @@ const ITEMS_PER_PAGE = 12;
 let menuPage = 1;
 let dashPage = 1;
 let taxRate = 0.0825;
+let bootDone = false;
 
 // Global handler: when a menu item image fails to load, replace with placeholder
 document.addEventListener("error", function (e) {
@@ -31,19 +25,32 @@ document.addEventListener("error", function (e) {
 }, true);
 
 // --- 0. Boot ----------------------------------------------------------------
-(async function boot() {
-  await seedIfEmpty();
-  MENU = await DB.getAll("menuItems");
-  menuById = Object.fromEntries(MENU.map((m) => [m.id, m]));
+const bootPromise = (async function boot() {
+  try {
+    await seedIfEmpty();
+    MENU = await DB.getAll("menuItems");
+    menuById = Object.fromEntries(MENU.map((m) => [m.id, m]));
 
-  const taxRow = await DB.get("meta", "taxRate");
-  if (taxRow) taxRate = taxRow.value;
-  updateTaxLabels();
+    const taxRow = await DB.get("meta", "taxRate");
+    if (taxRow) taxRate = taxRow.value;
+    updateTaxLabels();
 
-  renderMenu();
-  renderCart();
-  await refreshApprovalBadge();
+    renderMenu();
+    renderCart();
+    await refreshApprovalBadge();
+    bootDone = true;
+  } catch (err) {
+    console.error("Boot failed:", err);
+  }
 })();
+
+// --- Landing page -----------------------------------------------------------
+document.getElementById("enter-pos-btn").addEventListener("click", async () => {
+  if (!bootDone) await bootPromise;
+  document.getElementById("landing-page").classList.add("hidden");
+  document.getElementById("pos-app").classList.remove("hidden");
+  showPage("dashboard");
+});
 
 function updateTaxLabels() {
   const pct = (taxRate * 100).toFixed(2).replace(/\.?0+$/, "");
