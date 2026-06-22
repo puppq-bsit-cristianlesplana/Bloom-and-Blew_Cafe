@@ -3,8 +3,18 @@
    =========================================================================== */
 
 const DB_NAME = "bloo_brew_pos";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
+const DB_VERSION_KEY = "bloo_brew_db_version";
 let dbInstance = null;
+
+// Auto-clear stale database when version changes
+(function autoReset() {
+  const stored = localStorage.getItem(DB_VERSION_KEY);
+  if (stored && parseInt(stored, 10) !== DB_VERSION) {
+    indexedDB.deleteDatabase(DB_NAME);
+  }
+  localStorage.setItem(DB_VERSION_KEY, DB_VERSION);
+})();
 
 function openDB() {
   return new Promise((resolve, reject) => {
