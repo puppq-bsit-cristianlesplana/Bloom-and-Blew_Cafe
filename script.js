@@ -26,7 +26,10 @@ let MENU = [];
 let menuById = {};
 let activeCat = "All";
 let searchTerm = "";
-const cart = []; // { id, name, price, qty } — committed to DB at checkout
+const cart = [];
+const ITEMS_PER_PAGE = 12;
+let menuPage = 1;
+let dashPage = 1;
 
 // --- 0. Boot: open DB, seed if empty, load menu, render first page -------
 (async function boot() {
@@ -49,9 +52,9 @@ function showPage(pageId) {
     b.classList.toggle("active", b.dataset.page === pageId);
   });
 
-  // Re-fetch from the database every time a data-backed page is opened.
-  if (pageId === "kitchen") renderKitchen();
-  if (pageId === "inventory") renderInventory();
+  if (pageId === "dashboard") renderDashboard();
+  if (pageId === "kitchen") { renderKitchen(); clearBadge("kitchen-badge"); }
+  if (pageId === "inventory") { renderInventory(); clearBadge("inventory-badge"); }
   if (pageId === "approval") renderApprovals();
 }
 navButtons.forEach((btn) => {
@@ -59,26 +62,37 @@ navButtons.forEach((btn) => {
 });
 
 // --- 2. New Order: menu + cart --------------------------------------------
+function getFilteredMenu() {
+  return MENU
+    .filter((m) => activeCat === "All" || m.cat === activeCat)
+    .filter((m) => m.name.toLowerCase().includes(searchTerm.toLowerCase()));
+}
+
 function renderMenu() {
+  const filtered = getFilteredMenu();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  if (menuPage > totalPages) menuPage = totalPages;
+  const start = (menuPage - 1) * ITEMS_PER_PAGE;
+  const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
+
   const grid = document.getElementById("menu-grid");
   grid.innerHTML = "";
-  MENU
-    .filter((m) => activeCat === "All" || m.cat === activeCat)
-    .filter((m) => m.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    .forEach((item) => {
-      const card = document.createElement("button");
-      card.className = "menu-item";
-      card.innerHTML = `
-        <div class="menu-item-emoji">${item.emoji}</div>
-        <div class="menu-item-name">${item.name}</div>
-        <div class="menu-item-row">
-          <span class="menu-item-price">₱${item.price.toFixed(2)}</span>
-          <span class="menu-item-add">+</span>
-        </div>
-      `;
-      card.addEventListener("click", () => addToCart(item));
-      grid.appendChild(card);
-    });
+  pageItems.forEach((item) => {
+    const card = document.createElement("button");
+    card.className = "menu-item";
+    card.innerHTML = `
+      <div class="menu-item-emoji">${item.emoji}</div>
+      <div class="menu-item-name">${item.name}</div>
+      <div class="menu-item-row">
+        <span class="menu-item-price">₱${item.price.toFixed(2)}</span>
+        <span class="menu-item-add">+</span>
+      </div>
+    `;
+    card.addEventListener("click", () => addToCart(item));
+    grid.appendChild(card);
+  });
+
+  renderPagination("menu-pagination", menuPage, totalPages, (p) => { menuPage = p; renderMenu(); });
 }
 
 function addToCart(item) {
@@ -139,12 +153,14 @@ document.querySelectorAll(".category-pills .pill").forEach((pill) => {
     document.querySelectorAll(".category-pills .pill").forEach((p) => p.classList.remove("active"));
     pill.classList.add("active");
     activeCat = pill.dataset.cat;
+    menuPage = 1;
     renderMenu();
   });
 });
 
 document.getElementById("menu-search").addEventListener("input", (e) => {
   searchTerm = e.target.value;
+  menuPage = 1;
   renderMenu();
 });
 
@@ -220,11 +236,12 @@ document.getElementById("confirm-payment-btn").addEventListener("click", async (
   // Step 4 + decision: deduct ingredient stock, raise alerts if needed.
   await deductInventoryForOrder(order.items, menuById);
 
-  // Reset the cart for the next customer.
   cart.length = 0;
   renderCart();
   closeModal();
   await refreshApprovalBadge();
+  await refreshKitchenBadge();
+  await refreshInventoryBadge();
 
   showOrderDetail(order.id);
 });
@@ -334,7 +351,7 @@ async function renderKitchen() {
         <div class="kitchen-card-head"><span>#${o.id}</span><span class="time">${o.timeLabel}</span></div>
         <div class="kitchen-card-meta">${o.table}</div>
         <ul class="kitchen-card-items">${itemsHtml}</ul>
-        <div class="kitchen-card-customer">Cashier: Jobelene N.</div>
+        <div class="kitchen-card-customer">Cashier: Nicole M.</div>
         ${actionHtml}
       `;
       card.querySelectorAll("button[data-order]").forEach((btn) => {
@@ -468,3 +485,115 @@ document.querySelectorAll("#page-approval .pill[data-appfilter]").forEach((pill)
 });
 
 document.getElementById("approval-refresh").addEventListener("click", renderApprovals);
+
+// --- 8. Notification badges for sidebar ------------------------------------
+function setBadge(id, count) {
+  const badge = document.getElementById(id);
+  if (!badge) return;
+  badge.textContent = count;
+  badge.classList.toggle("hidden", count <= 0);
+}
+
+function clearBadge(id) {
+  setBadge(id, 0);
+}
+
+async function refreshKitchenBadge() {
+  const orders = await DB.getAll("orders");
+  const newCount = orders.filter((o) => o.status === "sent_to_kitchen").length;
+  setBadge("kitchen-badge", newCount);
+}
+
+async function refreshInventoryBadge() {
+  const rows = await DB.getAll("inventory");
+  const alertCount = rows.filter((r) => r.stock < r.lowThreshold).length;
+  setBadge("inventory-badge", alertCount);
+}
+
+// --- 9. Pagination helper ---------------------------------------------------
+function renderPagination(containerId, currentPage, totalPages, onPageChange) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  if (totalPages <= 1) return;
+
+  const prev = document.createElement("button");
+  prev.className = "page-btn";
+  prev.textContent = "←";
+  prev.disabled = currentPage <= 1;
+  prev.addEventListener("click", () => onPageChange(currentPage - 1));
+  container.appendChild(prev);
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement("button");
+    btn.className = "page-btn" + (i === currentPage ? " active" : "");
+    btn.textContent = i;
+    btn.addEventListener("click", () => onPageChange(i));
+    container.appendChild(btn);
+  }
+
+  const next = document.createElement("button");
+  next.className = "page-btn";
+  next.textContent = "→";
+  next.disabled = currentPage >= totalPages;
+  next.addEventListener("click", () => onPageChange(currentPage + 1));
+  container.appendChild(next);
+}
+
+// --- 10. Dashboard ----------------------------------------------------------
+async function renderDashboard() {
+  const orders = await DB.getAll("orders");
+  const inventory = await DB.getAll("inventory");
+
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+  const pendingKitchen = orders.filter((o) => o.status === "sent_to_kitchen").length;
+  const lowStockCount = inventory.filter((r) => r.stock < r.lowThreshold).length;
+
+  const statsContainer = document.getElementById("dashboard-stats");
+  statsContainer.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total Orders</div>
+      <div class="stat-value">${totalOrders}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value">₱${totalRevenue.toFixed(2)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending in Kitchen</div>
+      <div class="stat-value">${pendingKitchen}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Low Stock Items</div>
+      <div class="stat-value">${lowStockCount}</div>
+    </div>
+  `;
+
+  const totalDashPages = Math.max(1, Math.ceil(MENU.length / ITEMS_PER_PAGE));
+  if (dashPage > totalDashPages) dashPage = totalDashPages;
+  const start = (dashPage - 1) * ITEMS_PER_PAGE;
+  const pageItems = MENU.slice(start, start + ITEMS_PER_PAGE);
+
+  const grid = document.getElementById("dashboard-menu-grid");
+  grid.innerHTML = "";
+  pageItems.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "dashboard-item-card";
+    card.innerHTML = `
+      <div class="dashboard-item-emoji">${item.emoji}</div>
+      <div class="dashboard-item-info">
+        <div class="dashboard-item-name">${item.name}</div>
+        <div class="dashboard-item-cat">${item.cat}</div>
+        <div class="dashboard-item-price">₱${item.price.toFixed(2)}</div>
+      </div>
+      <button class="btn btn-primary dashboard-order-btn">Order</button>
+    `;
+    card.querySelector(".dashboard-order-btn").addEventListener("click", () => {
+      addToCart(item);
+      showPage("orders");
+    });
+    grid.appendChild(card);
+  });
+
+  renderPagination("dashboard-pagination", dashPage, totalDashPages, (p) => { dashPage = p; renderDashboard(); });
+}

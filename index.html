@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bloo &amp; Brew Café — POS</title>
+<title>Bloom &amp; Brew Café — POS</title>
 <link rel="stylesheet" href="style.css">
 
 <!--
@@ -38,7 +38,7 @@
       <div class="brand">
         <span class="brand-icon">☕</span>
         <div class="brand-text">
-          <span class="brand-name">Bloo &amp; Brew</span>
+          <span class="brand-name">Bloom &amp; Brew</span>
           <span class="brand-sub">Café POS</span>
         </div>
       </div>
@@ -52,19 +52,15 @@
         </button>
         <button class="nav-item" data-page="kitchen">
           <span class="nav-icon">▥</span> Kitchen
+          <span class="nav-badge hidden" id="kitchen-badge">0</span>
         </button>
         <button class="nav-item" data-page="inventory">
           <span class="nav-icon">▦</span> Inventory
+          <span class="nav-badge hidden" id="inventory-badge">0</span>
         </button>
         <button class="nav-item" data-page="approval">
           <span class="nav-icon">⚑</span> Manager Approval
           <span class="nav-badge" id="approval-badge">2</span>
-        </button>
-        <button class="nav-item" data-page="reports">
-          <span class="nav-icon">▧</span> Reports
-        </button>
-        <button class="nav-item" data-page="customers">
-          <span class="nav-icon">◍</span> Customers
         </button>
         <button class="nav-item" data-page="settings">
           <span class="nav-icon">⚙</span> Settings
@@ -72,9 +68,9 @@
       </nav>
 
       <div class="sidebar-user">
-        <span class="user-avatar">JN</span>
+        <span class="user-avatar">NM</span>
         <div class="user-text">
-          <span class="user-name">Jobelene Nery</span>
+          <span class="user-name">Nicole Melican</span>
           <span class="user-role">Cashier</span>
         </div>
         <span class="user-caret">⌄</span>
@@ -107,13 +103,13 @@
             <div class="category-pills">
               <button class="pill active" data-cat="All">All</button>
               <button class="pill" data-cat="Coffee">Coffee</button>
-              <button class="pill" data-cat="Pastries">Pastries</button>
-              <button class="pill" data-cat="Sandwiches">Sandwiches</button>
-              <button class="pill" data-cat="Cold Drinks">Cold Drinks</button>
-              <button class="pill" data-cat="Desserts">Desserts</button>
+              <button class="pill" data-cat="Ice Shaken">Ice Shaken</button>
+              <button class="pill" data-cat="Non-Coffee">Non-Coffee</button>
+              <button class="pill" data-cat="Snacks">Snacks</button>
             </div>
 
             <div class="menu-grid" id="menu-grid"><!-- populated by script.js --></div>
+            <div class="pagination" id="menu-pagination"></div>
           </div>
 
           <!-- Current order column -->
@@ -193,7 +189,7 @@
                   <div class="detail-order-id">
                     Order #<span id="detail-order-id">—</span> <span class="status-pill" id="detail-status-pill">—</span>
                   </div>
-                  <p class="detail-meta">🍽 Dine In · <span id="detail-table">—</span> · Cashier: Jobelene Nery</p>
+                  <p class="detail-meta">🍽 Dine In · <span id="detail-table">—</span> · Cashier: Nicole Melican</p>
                   <p class="detail-meta">📅 <span id="detail-datetime">—</span></p>
                 </div>
                 <div class="detail-customer">
@@ -291,7 +287,6 @@
           </table>
         </div>
 
-        <a href="#" class="report-link">📊 View Inventory Report</a>
       </section>
 
       <!-- ============================== PAGE 5: MANAGER APPROVAL ============================== -->
@@ -308,17 +303,19 @@
 
         <div class="approval-list" id="approval-list"><!-- populated by script.js --></div>
 
-        <a href="#" class="report-link">View All Alerts</a>
       </section>
 
       <!-- ============================== PLACEHOLDER PAGES ============================== -->
       <section id="page-dashboard" class="page">
-        <header class="page-header"><h1>Dashboard</h1></header>
-        <div class="card"><p class="muted">Dashboard view is not part of this mockup's scope.</p></div>
-      </section>
-      <section id="page-reports" class="page">
-        <header class="page-header"><h1>Reports</h1></header>
-        <div class="card"><p class="muted">Reports view is not part of this mockup's scope.</p></div>
+        <header class="page-header">
+          <h1>Dashboard</h1>
+        </header>
+
+        <div class="dashboard-stats" id="dashboard-stats"></div>
+
+        <h2 class="dashboard-section-title">Menu Items</h2>
+        <div class="dashboard-menu-grid" id="dashboard-menu-grid"></div>
+        <div class="pagination" id="dashboard-pagination"></div>
       </section>
       <section id="page-customers" class="page">
         <header class="page-header"><h1>Customers</h1></header>
