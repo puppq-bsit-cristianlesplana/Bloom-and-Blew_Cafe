@@ -52,6 +52,26 @@ document.getElementById("enter-pos-btn").addEventListener("click", async () => {
   showPage("orders");
 });
 
+// --- Mobile sidebar toggle --------------------------------------------------
+const sidebar = document.getElementById("sidebar");
+const backdrop = document.getElementById("sidebar-backdrop");
+
+function openSidebar() {
+  sidebar.classList.add("open");
+  backdrop.classList.add("visible");
+}
+
+function closeSidebar() {
+  sidebar.classList.remove("open");
+  backdrop.classList.remove("visible");
+}
+
+document.getElementById("hamburger-btn").addEventListener("click", () => {
+  sidebar.classList.contains("open") ? closeSidebar() : openSidebar();
+});
+
+backdrop.addEventListener("click", closeSidebar);
+
 // --- Exit modal (cashier name click) ----------------------------------------
 const exitModal = document.getElementById("exit-modal");
 
@@ -100,7 +120,10 @@ function showPage(pageId) {
   if (pageId === "settings") renderSettings();
 }
 navButtons.forEach((btn) => {
-  btn.addEventListener("click", () => showPage(btn.dataset.page));
+  btn.addEventListener("click", () => {
+    showPage(btn.dataset.page);
+    closeSidebar();
+  });
 });
 
 // --- 2. New Order: menu + cart ----------------------------------------------
