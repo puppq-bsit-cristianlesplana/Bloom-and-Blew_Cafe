@@ -633,6 +633,8 @@ document.getElementById("save-prices-btn").addEventListener("click", async () =>
 document.getElementById("reset-stock-btn").addEventListener("click", async () => {
   if (!confirm("Reset all inventory to default levels? Orders and menu prices will be kept.")) return;
   await resetStockOnly();
+  renderInventory();
+  renderSettings();
   await refreshApprovalBadge();
   await refreshInventoryBadge();
   alert("Stock reset to defaults.");
@@ -649,6 +651,7 @@ document.getElementById("reset-all-btn").addEventListener("click", async () => {
   cart.length = 0;
   renderCart();
   renderMenu();
+  renderInventory();
   renderSettings();
   await refreshApprovalBadge();
   await refreshKitchenBadge();
