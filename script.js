@@ -41,14 +41,6 @@ const bootPromise = (async function boot() {
     renderCart();
     await refreshApprovalBadge();
     bootDone = true;
-
-    // Restore last page if POS was active before refresh
-    if (localStorage.getItem("posActive") === "true") {
-      document.getElementById("landing-page").classList.add("hidden");
-      document.getElementById("pos-app").classList.remove("hidden");
-      var savedPage = localStorage.getItem("currentPage") || "orders";
-      showPage(savedPage);
-    }
   } catch (err) {
     console.error("Boot failed:", err);
   }
