@@ -1,4 +1,4 @@
-# Bloom and Blew Cafe — POS System
+# Bloom and BRew Cafe — POS System
 
 A fully functional cafe point-of-sale and restaurant management system built with **HTML, CSS, and JavaScript only** — no framework, no build step, no external server. Uses the browser's built-in IndexedDB for persistent data storage that survives page reloads.
 
