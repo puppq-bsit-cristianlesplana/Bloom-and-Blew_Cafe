@@ -16,10 +16,12 @@ let bootDone = false;
 // Global handler: when a menu item image fails to load, replace with placeholder
 document.addEventListener("error", function (e) {
   if (e.target.tagName === "IMG" && e.target.classList.contains("item-img")) {
-    const div = document.createElement("div");
+    var div = document.createElement("div");
     div.className = "item-img item-img--placeholder";
     div.dataset.cat = e.target.dataset.cat;
-    div.textContent = e.target.alt.charAt(0);
+    var idx = parseInt(e.target.dataset.idx || "0", 10);
+    var positions = ["20% 20%", "50% 30%", "80% 20%", "15% 70%", "50% 60%", "85% 70%", "30% 45%", "65% 45%", "10% 50%", "90% 50%", "40% 80%", "70% 15%"];
+    div.style.backgroundPosition = positions[idx % positions.length];
     e.target.replaceWith(div);
   }
 }, true);
@@ -39,6 +41,14 @@ const bootPromise = (async function boot() {
     renderCart();
     await refreshApprovalBadge();
     bootDone = true;
+
+    // Restore last page if POS was active before refresh
+    if (localStorage.getItem("posActive") === "true") {
+      document.getElementById("landing-page").classList.add("hidden");
+      document.getElementById("pos-app").classList.remove("hidden");
+      var savedPage = localStorage.getItem("currentPage") || "orders";
+      showPage(savedPage);
+    }
   } catch (err) {
     console.error("Boot failed:", err);
   }
@@ -49,6 +59,7 @@ document.getElementById("enter-pos-btn").addEventListener("click", async () => {
   if (!bootDone) await bootPromise;
   document.getElementById("landing-page").classList.add("hidden");
   document.getElementById("pos-app").classList.remove("hidden");
+  localStorage.setItem("posActive", "true");
   showPage("orders");
 });
 
@@ -91,6 +102,8 @@ document.getElementById("exit-btn").addEventListener("click", () => {
   exitModal.classList.remove("visible");
   document.getElementById("pos-app").classList.add("hidden");
   document.getElementById("landing-page").classList.remove("hidden");
+  localStorage.removeItem("posActive");
+  localStorage.removeItem("currentPage");
 });
 
 function updateTaxLabels() {
@@ -113,6 +126,8 @@ function showPage(pageId) {
     b.classList.toggle("active", b.dataset.page === pageId);
   });
 
+  localStorage.setItem("currentPage", pageId);
+
   if (pageId === "dashboard") renderDashboard();
   if (pageId === "kitchen") { renderKitchen(); clearBadge("kitchen-badge"); }
   if (pageId === "inventory") { renderInventory(); clearBadge("inventory-badge"); }
@@ -133,8 +148,8 @@ function getFilteredMenu() {
     .filter((m) => m.name.toLowerCase().includes(searchTerm.toLowerCase()));
 }
 
-function itemImgHtml(item, cls) {
-  return '<img class="' + cls + ' item-img" src="' + item.image + '" alt="' + item.name + '" data-cat="' + item.cat + '">';
+function itemImgHtml(item, cls, idx) {
+  return '<img class="' + cls + ' item-img" src="' + item.image + '" alt="' + item.name + '" data-cat="' + item.cat + '" data-idx="' + (idx || 0) + '">';
 }
 
 function renderMenu() {
@@ -146,12 +161,12 @@ function renderMenu() {
 
   const grid = document.getElementById("menu-grid");
   grid.innerHTML = "";
-  pageItems.forEach((item) => {
+  pageItems.forEach((item, i) => {
     const card = document.createElement("button");
     card.className = "menu-item";
     card.type = "button";
     card.innerHTML =
-      itemImgHtml(item, "menu-item-img") +
+      itemImgHtml(item, "menu-item-img", start + i) +
       '<div class="menu-item-name">' + item.name + '</div>' +
       '<div class="menu-item-row">' +
         '<span class="menu-item-price">₱' + item.price.toFixed(2) + '</span>' +
@@ -590,7 +605,12 @@ document.querySelectorAll("#page-approval .pill[data-appfilter]").forEach((pill)
   });
 });
 
-document.getElementById("approval-refresh").addEventListener("click", renderApprovals);
+document.getElementById("approval-refresh").addEventListener("click", async function () {
+  await renderApprovals();
+  await refreshApprovalBadge();
+  await refreshInventoryBadge();
+  renderInventory();
+});
 
 // --- 8. Notification badges -------------------------------------------------
 function setBadge(id, count) {
@@ -663,11 +683,11 @@ async function renderDashboard() {
 
   const grid = document.getElementById("dashboard-menu-grid");
   grid.innerHTML = "";
-  pageItems.forEach((item) => {
+  pageItems.forEach((item, i) => {
     const card = document.createElement("div");
     card.className = "dashboard-item-card";
     card.innerHTML =
-      itemImgHtml(item, "dashboard-item-img") +
+      itemImgHtml(item, "dashboard-item-img", start + i) +
       '<div class="dashboard-item-info">' +
         '<div class="dashboard-item-name">' + item.name + '</div>' +
         '<div class="dashboard-item-cat">' + item.cat + '</div>' +

@@ -3,7 +3,7 @@
    =========================================================================== */
 
 const DB_NAME = "bloo_brew_pos";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const DB_VERSION_KEY = "bloo_brew_db_version";
 let dbInstance = null;
 
@@ -88,16 +88,16 @@ const DB = {
 // ---------------------------------------------------------------------------
 const SEED_MENU = [
   { id: "m1", name: "Americano", price: 45, cat: "Coffee", image: "images/americano.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }] },
-  { id: "m2", name: "Cafe Latte", price: 55, cat: "Coffee", image: "images/cafe-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
+  { id: "m2", name: "Cafe Latte", price: 55, cat: "Coffee", image: "images/latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
   { id: "m3", name: "Vanilla Latte", price: 59, cat: "Coffee", image: "images/vanilla-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Vanilla Syrup", use: 0.03 }] },
-  { id: "m4", name: "Hazelnut Latte", price: 59, cat: "Coffee", image: "images/hazelnut-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.03 }] },
+  { id: "m4", name: "Hazelnut Latte", price: 59, cat: "Coffee", image: "images/hazel-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.03 }] },
   { id: "m5", name: "Spanish Latte", price: 59, cat: "Coffee", image: "images/spanish-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.12 }, { name: "Condensed Milk", use: 0.03 }] },
-  { id: "m6", name: "Caramel Macchiato", price: 59, cat: "Coffee", image: "images/caramel-macchiato.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
+  { id: "m6", name: "Caramel Macchiato", price: 59, cat: "Coffee", image: "images/caramel-machiato.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
   { id: "m7", name: "Salted Caramel", price: 59, cat: "Coffee", image: "images/salted-caramel.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
   { id: "m8", name: "White Mocha", price: 59, cat: "Coffee", image: "images/white-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "White Choco Sauce", use: 0.03 }] },
   { id: "m9", name: "Cafe Mocha", price: 59, cat: "Coffee", image: "images/cafe-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Choco Sauce", use: 0.03 }] },
-  { id: "m10", name: "Coffee Matcha", price: 59, cat: "Coffee", image: "images/coffee-matcha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.12 }] },
-  { id: "m11", name: "Hazelnut Mocha", price: 59, cat: "Coffee", image: "images/hazelnut-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.02 }, { name: "Choco Sauce", use: 0.02 }] },
+  { id: "m10", name: "Coffee Matcha", price: 59, cat: "Coffee", image: "images/cafe-matcha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.12 }] },
+  { id: "m11", name: "Hazelnut Mocha", price: 59, cat: "Coffee", image: "images/hazel-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.02 }, { name: "Choco Sauce", use: 0.02 }] },
   { id: "m12", name: "Berry Lemonade", price: 55, cat: "Ice Shaken", image: "images/berry-lemonade.jpg", ingredients: [{ name: "Berry Mix", use: 0.05 }, { name: "Lemon Juice", use: 0.03 }] },
   { id: "m13", name: "Honey Calamansi", price: 55, cat: "Ice Shaken", image: "images/honey-calamansi.jpg", ingredients: [{ name: "Honey", use: 0.03 }, { name: "Calamansi Juice", use: 0.05 }] },
   { id: "m14", name: "Mango Hibiscus", price: 55, cat: "Ice Shaken", image: "images/mango-hibiscus.jpg", ingredients: [{ name: "Mango Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
