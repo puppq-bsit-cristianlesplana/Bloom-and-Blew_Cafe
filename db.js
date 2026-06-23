@@ -3,7 +3,7 @@
    =========================================================================== */
 
 const DB_NAME = "bloo_brew_pos";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const DB_VERSION_KEY = "bloo_brew_db_version";
 let dbInstance = null;
 
@@ -87,33 +87,43 @@ const DB = {
 // Seed data
 // ---------------------------------------------------------------------------
 const SEED_MENU = [
-  { id: "m1", name: "Americano", price: 45, cat: "Coffee", image: "images/americano.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }] },
-  { id: "m2", name: "Cafe Latte", price: 55, cat: "Coffee", image: "images/latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
-  { id: "m3", name: "Vanilla Latte", price: 59, cat: "Coffee", image: "images/vanilla-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Vanilla Syrup", use: 0.03 }] },
-  { id: "m4", name: "Hazelnut Latte", price: 59, cat: "Coffee", image: "images/hazel-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.03 }] },
-  { id: "m5", name: "Spanish Latte", price: 59, cat: "Coffee", image: "images/spanish-latte.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.12 }, { name: "Condensed Milk", use: 0.03 }] },
-  { id: "m6", name: "Caramel Macchiato", price: 59, cat: "Coffee", image: "images/caramel-machiato.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
-  { id: "m7", name: "Salted Caramel", price: 59, cat: "Coffee", image: "images/salted-caramel.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
-  { id: "m8", name: "White Mocha", price: 59, cat: "Coffee", image: "images/white-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "White Choco Sauce", use: 0.03 }] },
-  { id: "m9", name: "Cafe Mocha", price: 59, cat: "Coffee", image: "images/cafe-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Choco Sauce", use: 0.03 }] },
-  { id: "m10", name: "Coffee Matcha", price: 59, cat: "Coffee", image: "images/cafe-matcha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.12 }] },
-  { id: "m11", name: "Hazelnut Mocha", price: 59, cat: "Coffee", image: "images/hazel-mocha.jpg", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.02 }, { name: "Choco Sauce", use: 0.02 }] },
-  { id: "m12", name: "Berry Lemonade", price: 55, cat: "Ice Shaken", image: "images/berry-lemonade.jpg", ingredients: [{ name: "Berry Mix", use: 0.05 }, { name: "Lemon Juice", use: 0.03 }] },
-  { id: "m13", name: "Honey Calamansi", price: 55, cat: "Ice Shaken", image: "images/honey-calamansi.jpg", ingredients: [{ name: "Honey", use: 0.03 }, { name: "Calamansi Juice", use: 0.05 }] },
-  { id: "m14", name: "Mango Hibiscus", price: 55, cat: "Ice Shaken", image: "images/mango-hibiscus.jpg", ingredients: [{ name: "Mango Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
-  { id: "m15", name: "Strawberry Hibiscus", price: 55, cat: "Ice Shaken", image: "images/strawberry-hibiscus.jpg", ingredients: [{ name: "Strawberry Puree", use: 0.05 }, { name: "Hibiscus Tea", use: 0.1 }] },
-  { id: "m16", name: "Ube Latte", price: 59, cat: "Non-Coffee", image: "images/ube-latte.jpg", ingredients: [{ name: "Ube Powder", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m17", name: "Matcha Latte", price: 59, cat: "Non-Coffee", image: "images/matcha-latte.jpg", ingredients: [{ name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m18", name: "Dark Choco", price: 59, cat: "Non-Coffee", image: "images/dark-choco.jpg", ingredients: [{ name: "Choco Sauce", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m19", name: "Oreo Milk", price: 59, cat: "Non-Coffee", image: "images/oreo-milk.jpg", ingredients: [{ name: "Oreo Crumbs", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m20", name: "Strawberry Milk", price: 59, cat: "Non-Coffee", image: "images/strawberry-milk.jpg", ingredients: [{ name: "Strawberry Puree", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m21", name: "Blueberry Milk", price: 59, cat: "Non-Coffee", image: "images/blueberry-milk.jpg", ingredients: [{ name: "Berry Mix", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m22", name: "Mango Milk", price: 59, cat: "Non-Coffee", image: "images/mango-milk.jpg", ingredients: [{ name: "Mango Puree", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
-  { id: "m23", name: "2 pcs. Hashbrown", price: 55, cat: "Snacks", image: "images/hashbrown.jpg", ingredients: [{ name: "Hashbrown Patties", use: 2 }] },
-  { id: "m24", name: "6 pcs. Chicken Nuggets", price: 59, cat: "Snacks", image: "images/chicken-nuggets.jpg", ingredients: [{ name: "Chicken Nuggets", use: 6 }] },
-  { id: "m25", name: "Cheesy Beef Nachos", price: 65, cat: "Snacks", image: "images/cheesy-beef-nachos.jpg", ingredients: [{ name: "Nacho Chips", use: 1 }, { name: "Beef Topping", use: 0.08 }] },
-  { id: "m26", name: "Crinkled Cut Fries", price: 65, cat: "Snacks", image: "images/crinkled-cut-fries.jpg", ingredients: [{ name: "Fries", use: 0.15 }] },
-  { id: "m27", name: "Churro Bites", price: 65, cat: "Snacks", image: "images/churro-bites.jpg", ingredients: [{ name: "Churro Dough", use: 0.12 }] },
+  // Coffee (11)
+  { id: "m1", name: "Americano", price: 45, cat: "Coffee", image: "images/americano.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }] },
+  { id: "m2", name: "Cafe Latte", price: 55, cat: "Coffee", image: "images/cafe-latte.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
+  { id: "m3", name: "Vanilla Latte", price: 59, cat: "Coffee", image: "images/vanilla-latte.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Vanilla Syrup", use: 0.03 }] },
+  { id: "m4", name: "Hazelnut Latte", price: 59, cat: "Coffee", image: "images/hazelnut-latte.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.03 }] },
+  { id: "m5", name: "Spanish Latte", price: 59, cat: "Coffee", image: "images/spanish-latte.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.12 }, { name: "Condensed Milk", use: 0.03 }] },
+  { id: "m6", name: "Caramel Macchiato", price: 59, cat: "Coffee", image: "images/caramel-macchiato.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
+  { id: "m7", name: "Salted Caramel", price: 59, cat: "Coffee", image: "images/salted-caramel.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Caramel Sauce", use: 0.03 }] },
+  { id: "m8", name: "White Mocha", price: 59, cat: "Coffee", image: "images/white-mocha.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "White Choco Sauce", use: 0.03 }] },
+  { id: "m9", name: "Cafe Mocha", price: 59, cat: "Coffee", image: "images/cafe-mocha.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Choco Sauce", use: 0.03 }] },
+  { id: "m10", name: "Coffee Matcha", price: 59, cat: "Coffee", image: "images/coffe-matcha.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.12 }] },
+  { id: "m11", name: "Hazelnut Mocha", price: 59, cat: "Coffee", image: "images/hazelnut-mocha.png", ingredients: [{ name: "Espresso Beans", use: 0.04 }, { name: "Whole Milk", use: 0.15 }, { name: "Hazelnut Syrup", use: 0.02 }, { name: "Choco Sauce", use: 0.02 }] },
+  // Ice Shaken (4)
+  { id: "m12", name: "Chocolate", price: 55, cat: "Ice Shaken", image: "images/Chocolate.png", ingredients: [{ name: "Choco Sauce", use: 0.05 }, { name: "Whole Milk", use: 0.15 }] },
+  { id: "m13", name: "Toffee Nut", price: 55, cat: "Ice Shaken", image: "images/toffee-nut.png", ingredients: [{ name: "Toffee Nut Syrup", use: 0.04 }, { name: "Whole Milk", use: 0.15 }] },
+  { id: "m14", name: "Black Tea", price: 55, cat: "Ice Shaken", image: "images/black-tea.png", ingredients: [{ name: "Black Tea", use: 0.1 }] },
+  { id: "m15", name: "Hibiscus Tea", price: 59, cat: "Ice Shaken", image: "images/hibiscus-tea.png", ingredients: [{ name: "Hibiscus Tea", use: 0.1 }] },
+  // Non-Coffee (8)
+  { id: "m16", name: "Matcha Latte", price: 25, cat: "Non-Coffee", image: "images/matcha-latte.png", ingredients: [{ name: "Matcha Powder", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m17", name: "Tangerine Tea", price: 25, cat: "Non-Coffee", image: "images/tangerine-tea.png", ingredients: [{ name: "Tangerine Syrup", use: 0.04 }] },
+  { id: "m18", name: "Iced Chocolate", price: 35, cat: "Non-Coffee", image: "images/iced-chocolate.png", ingredients: [{ name: "Choco Sauce", use: 0.05 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m19", name: "Creamy Pandan", price: 35, cat: "Non-Coffee", image: "images/creamy-pandan.png", ingredients: [{ name: "Pandan Syrup", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m20", name: "Lychee", price: 35, cat: "Non-Coffee", image: "images/lychee.png", ingredients: [{ name: "Lychee Syrup", use: 0.04 }] },
+  { id: "m21", name: "Red Velvet", price: 35, cat: "Non-Coffee", image: "images/red-velvet.png", ingredients: [{ name: "Red Velvet Powder", use: 0.04 }, { name: "Whole Milk", use: 0.2 }] },
+  { id: "m22", name: "Cranberry", price: 35, cat: "Non-Coffee", image: "images/cranberry.png", ingredients: [{ name: "Cranberry Syrup", use: 0.04 }] },
+  // Snacks (11)
+  { id: "m23", name: "Ube Crinkles", price: 59, cat: "Snacks", image: "images/ube-crinkels.png", ingredients: [{ name: "Ube Crinkles", use: 1 }] },
+  { id: "m24", name: "Oatmeal Cookies", price: 39, cat: "Snacks", image: "images/oatmeal-cookies.png", ingredients: [{ name: "Oatmeal Cookies", use: 1 }] },
+  { id: "m25", name: "Mixed Nuts", price: 69, cat: "Snacks", image: "images/mixed-nuts.png", ingredients: [{ name: "Mixed Nuts", use: 1 }] },
+  { id: "m26", name: "Cheesecake Bar", price: 79, cat: "Snacks", image: "images/cheesecake-bar.png", ingredients: [{ name: "Cheesecake Bar", use: 1 }] },
+  { id: "m27", name: "Avocado Toast", price: 99, cat: "Snacks", image: "images/avocado-toast.png", ingredients: [{ name: "Avocado Toast", use: 1 }] },
+  { id: "m28", name: "Empanada", price: 79, cat: "Snacks", image: "images/empanada.png", ingredients: [{ name: "Empanada", use: 1 }] },
+  { id: "m29", name: "Ensaimada", price: 79, cat: "Snacks", image: "images/ensaimada.png", ingredients: [{ name: "Ensaimada", use: 1 }] },
+  { id: "m30", name: "Tuna Melt", price: 89, cat: "Snacks", image: "images/tuna-melt.png", ingredients: [{ name: "Tuna Melt", use: 1 }] },
+  { id: "m31", name: "Hotdog", price: 69, cat: "Snacks", image: "images/hotdog.png", ingredients: [{ name: "Hotdog", use: 1 }] },
+  { id: "m32", name: "Pasta Carbonara", price: 129, cat: "Snacks", image: "images/pasta-carbonara.png", ingredients: [{ name: "Pasta Carbonara", use: 1 }] },
+  { id: "m33", name: "Fries", price: 99, cat: "Snacks", image: "images/fries.png", ingredients: [{ name: "Fries", use: 0.15 }] },
 ];
 
 const SEED_INVENTORY = [
@@ -126,21 +136,25 @@ const SEED_INVENTORY = [
   { name: "White Choco Sauce", category: "Sauce", stock: 0.8, unit: "L", lowThreshold: 0.4 },
   { name: "Condensed Milk", category: "Dairy", stock: 2.0, unit: "L", lowThreshold: 0.8 },
   { name: "Matcha Powder", category: "Powder", stock: 0.5, unit: "kg", lowThreshold: 0.2 },
-  { name: "Ube Powder", category: "Powder", stock: 0.4, unit: "kg", lowThreshold: 0.15 },
-  { name: "Oreo Crumbs", category: "Topping", stock: 0.6, unit: "kg", lowThreshold: 0.2 },
-  { name: "Berry Mix", category: "Fruit", stock: 1.0, unit: "kg", lowThreshold: 0.3 },
-  { name: "Strawberry Puree", category: "Fruit", stock: 0.8, unit: "kg", lowThreshold: 0.3 },
-  { name: "Mango Puree", category: "Fruit", stock: 0.8, unit: "kg", lowThreshold: 0.3 },
-  { name: "Lemon Juice", category: "Fruit", stock: 1.0, unit: "L", lowThreshold: 0.3 },
-  { name: "Calamansi Juice", category: "Fruit", stock: 0.8, unit: "L", lowThreshold: 0.3 },
-  { name: "Honey", category: "Sweetener", stock: 0.6, unit: "L", lowThreshold: 0.2 },
+  { name: "Toffee Nut Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Black Tea", category: "Tea", stock: 2.0, unit: "L", lowThreshold: 0.5 },
   { name: "Hibiscus Tea", category: "Tea", stock: 2.0, unit: "L", lowThreshold: 0.5 },
-  { name: "Hashbrown Patties", category: "Frozen", stock: 30, unit: "pcs", lowThreshold: 10 },
-  { name: "Chicken Nuggets", category: "Frozen", stock: 50, unit: "pcs", lowThreshold: 18 },
-  { name: "Nacho Chips", category: "Snack", stock: 15, unit: "packs", lowThreshold: 5 },
-  { name: "Beef Topping", category: "Meat", stock: 1.5, unit: "kg", lowThreshold: 0.5 },
+  { name: "Tangerine Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Pandan Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Lychee Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Red Velvet Powder", category: "Powder", stock: 0.5, unit: "kg", lowThreshold: 0.2 },
+  { name: "Cranberry Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Ube Crinkles", category: "Pastry", stock: 30, unit: "pcs", lowThreshold: 10 },
+  { name: "Oatmeal Cookies", category: "Pastry", stock: 30, unit: "pcs", lowThreshold: 10 },
+  { name: "Mixed Nuts", category: "Snack", stock: 20, unit: "packs", lowThreshold: 5 },
+  { name: "Cheesecake Bar", category: "Pastry", stock: 20, unit: "pcs", lowThreshold: 5 },
+  { name: "Avocado Toast", category: "Food", stock: 15, unit: "pcs", lowThreshold: 5 },
+  { name: "Empanada", category: "Food", stock: 25, unit: "pcs", lowThreshold: 8 },
+  { name: "Ensaimada", category: "Pastry", stock: 20, unit: "pcs", lowThreshold: 8 },
+  { name: "Tuna Melt", category: "Food", stock: 15, unit: "pcs", lowThreshold: 5 },
+  { name: "Hotdog", category: "Food", stock: 20, unit: "pcs", lowThreshold: 8 },
+  { name: "Pasta Carbonara", category: "Food", stock: 15, unit: "pcs", lowThreshold: 5 },
   { name: "Fries", category: "Frozen", stock: 3.0, unit: "kg", lowThreshold: 1.0 },
-  { name: "Churro Dough", category: "Frozen", stock: 2.0, unit: "kg", lowThreshold: 0.8 },
 ];
 
 const DEFAULT_TAX_RATE = 0.0825;
