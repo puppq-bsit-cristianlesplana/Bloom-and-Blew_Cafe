@@ -41,6 +41,13 @@ const bootPromise = (async function boot() {
     renderCart();
     await refreshApprovalBadge();
     bootDone = true;
+
+    if (sessionStorage.getItem("posActive") === "true") {
+      document.getElementById("landing-page").classList.add("hidden");
+      document.getElementById("pos-app").classList.remove("hidden");
+      var savedPage = sessionStorage.getItem("currentPage") || "orders";
+      showPage(savedPage);
+    }
   } catch (err) {
     console.error("Boot failed:", err);
   }
@@ -51,7 +58,7 @@ document.getElementById("enter-pos-btn").addEventListener("click", async () => {
   if (!bootDone) await bootPromise;
   document.getElementById("landing-page").classList.add("hidden");
   document.getElementById("pos-app").classList.remove("hidden");
-  localStorage.setItem("posActive", "true");
+  sessionStorage.setItem("posActive", "true");
   showPage("orders");
 });
 
@@ -94,8 +101,8 @@ document.getElementById("exit-btn").addEventListener("click", () => {
   exitModal.classList.remove("visible");
   document.getElementById("pos-app").classList.add("hidden");
   document.getElementById("landing-page").classList.remove("hidden");
-  localStorage.removeItem("posActive");
-  localStorage.removeItem("currentPage");
+  sessionStorage.removeItem("posActive");
+  sessionStorage.removeItem("currentPage");
 });
 
 function updateTaxLabels() {
@@ -118,7 +125,7 @@ function showPage(pageId) {
     b.classList.toggle("active", b.dataset.page === pageId);
   });
 
-  localStorage.setItem("currentPage", pageId);
+  sessionStorage.setItem("currentPage", pageId);
 
   if (pageId === "dashboard") renderDashboard();
   if (pageId === "kitchen") { renderKitchen(); clearBadge("kitchen-badge"); }
@@ -962,7 +969,7 @@ document.getElementById("print-order-btn").addEventListener("click", async funct
     'table{width:100%;border-collapse:collapse}td{padding:3px 0}' +
     '.r{text-align:right}.b{font-weight:bold}.total{font-size:15px}' +
     '.footer{text-align:center;margin-top:16px;font-size:11px;color:#666}</style></head><body>' +
-    '<h2>Bloom and Blew Cafe</h2>' +
+    '<h2>Bloom and Brew Cafe</h2>' +
     '<p class="sub">Official Receipt</p><hr>' +
     '<p>Order: <b>#' + order.id + '</b></p>' +
     '<p>' + order.table + ' · ' + new Date(order.createdAt).toLocaleString("en-PH") + '</p>' +
