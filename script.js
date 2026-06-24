@@ -12,6 +12,7 @@ let menuPage = 1;
 let dashPage = 1;
 let taxRate = 0.0825;
 let bootDone = false;
+let tableNumber = 1;
 
 // Global handler: when a menu item image fails to load, replace with placeholder
 document.addEventListener("error", function (e) {
@@ -40,6 +41,7 @@ const bootPromise = (async function boot() {
     renderMenu();
     renderCart();
     await refreshApprovalBadge();
+    await autoSelectNextTable();
     bootDone = true;
 
     if (sessionStorage.getItem("posActive") === "true") {
@@ -61,6 +63,96 @@ document.getElementById("enter-pos-btn").addEventListener("click", async () => {
   sessionStorage.setItem("posActive", "true");
   showPage("orders");
 });
+
+// --- Order type (Dine In / Take Out) -----------------------------------------
+let orderType = "Dine In";
+const MAX_TABLES = 10;
+
+document.getElementById("btn-dine-in").addEventListener("click", function () {
+  orderType = "Dine In";
+  document.getElementById("btn-dine-in").classList.add("active");
+  document.getElementById("btn-take-out").classList.remove("active");
+  document.getElementById("order-type-label").textContent = "Dine In";
+  document.getElementById("table-selector").style.display = "flex";
+  updateTableDisplay();
+});
+document.getElementById("btn-take-out").addEventListener("click", function () {
+  orderType = "Take Out";
+  document.getElementById("btn-take-out").classList.add("active");
+  document.getElementById("btn-dine-in").classList.remove("active");
+  document.getElementById("order-type-label").textContent = "Take Out";
+  document.getElementById("table-selector").style.display = "none";
+});
+
+// --- Table number stepper + occupancy ----------------------------------------
+async function getOccupiedTables() {
+  var orders = await DB.getAll("orders");
+  var occupied = new Set();
+  orders.forEach(function (o) {
+    if (o.status !== "completed" && o.table && o.table.startsWith("Table ")) {
+      var num = parseInt(o.table.replace("Table ", ""), 10);
+      if (!isNaN(num)) occupied.add(num);
+    }
+  });
+  return occupied;
+}
+
+async function getFirstAvailableTable() {
+  var occupied = await getOccupiedTables();
+  for (var i = 1; i <= MAX_TABLES; i++) {
+    if (!occupied.has(i)) return i;
+  }
+  return null;
+}
+
+async function updateTableDisplay() {
+  var occupied = await getOccupiedTables();
+  document.getElementById("table-label").textContent = "Table " + tableNumber;
+  var statusEl = document.getElementById("table-status");
+  if (occupied.has(tableNumber)) {
+    statusEl.textContent = "Occupied";
+    statusEl.className = "table-status occupied";
+  } else {
+    statusEl.textContent = "Available";
+    statusEl.className = "table-status available";
+  }
+}
+
+async function autoSelectNextTable() {
+  var next = await getFirstAvailableTable();
+  if (next !== null) {
+    tableNumber = next;
+  }
+  await updateTableDisplay();
+}
+
+document.getElementById("table-dec").addEventListener("click", async function () {
+  if (tableNumber > 1) { tableNumber--; await updateTableDisplay(); }
+});
+document.getElementById("table-inc").addEventListener("click", async function () {
+  if (tableNumber < MAX_TABLES) { tableNumber++; await updateTableDisplay(); }
+});
+
+async function assignWaitingOrders() {
+  var orders = await DB.getAll("orders");
+  var waiting = orders
+    .filter(function (o) { return o.table === "Waiting" && o.status !== "completed"; })
+    .sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); });
+  if (waiting.length === 0) return;
+
+  var occupied = await getOccupiedTables();
+  for (var i = 0; i < waiting.length; i++) {
+    var freeTable = null;
+    for (var t = 1; t <= MAX_TABLES; t++) {
+      if (!occupied.has(t)) { freeTable = t; break; }
+    }
+    if (freeTable === null) break;
+    waiting[i].table = "Table " + freeTable;
+    await DB.put("orders", waiting[i]);
+    occupied.add(freeTable);
+  }
+  await updateTableDisplay();
+}
 
 // --- Mobile sidebar toggle --------------------------------------------------
 const sidebar = document.getElementById("sidebar");
@@ -151,7 +243,40 @@ function itemImgHtml(item, cls, idx) {
   return '<img class="' + cls + ' item-img" src="' + item.image + '" alt="' + item.name + '" data-cat="' + item.cat + '" data-idx="' + (idx || 0) + '">';
 }
 
-function renderMenu() {
+async function getItemStockLimits() {
+  var inventory = await DB.getAll("inventory");
+  var invByName = {};
+  inventory.forEach(function (r) { invByName[r.name] = r; });
+  var limits = {};
+  MENU.forEach(function (item) {
+    if (!item.ingredients) { limits[item.id] = Infinity; return; }
+    var minServings = Infinity;
+    for (var j = 0; j < item.ingredients.length; j++) {
+      var ing = item.ingredients[j];
+      var row = invByName[ing.name];
+      if (!row || row.stock <= 0) { minServings = 0; break; }
+      if (ing.use > 0) {
+        var servings = Math.floor(row.stock / ing.use);
+        if (servings < minServings) minServings = servings;
+      }
+    }
+    limits[item.id] = minServings;
+  });
+  return limits;
+}
+
+function getCartQtyForItem(itemId) {
+  var base = itemId.replace(/-iced$|-hot$/, "");
+  var qty = 0;
+  cart.forEach(function (c) {
+    var cBase = c.id.replace(/-iced$|-hot$/, "");
+    if (cBase === base) qty += c.qty;
+  });
+  return qty;
+}
+
+async function renderMenu() {
+  var stockLimits = await getItemStockLimits();
   const filtered = getFilteredMenu();
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   if (menuPage > totalPages) menuPage = totalPages;
@@ -161,17 +286,37 @@ function renderMenu() {
   const grid = document.getElementById("menu-grid");
   grid.innerHTML = "";
   pageItems.forEach((item, i) => {
+    var limit = stockLimits[item.id] || 0;
+    var inCart = getCartQtyForItem(item.id);
+    var remaining = Math.max(0, limit - inCart);
+    var isUnavailable = limit <= 0;
+    var isMaxed = remaining <= 0 && !isUnavailable;
+
     const card = document.createElement("button");
-    card.className = "menu-item";
+    card.className = "menu-item" + (isUnavailable ? " menu-item-unavailable" : isMaxed ? " menu-item-maxed" : "");
     card.type = "button";
+    if (isUnavailable || isMaxed) card.disabled = true;
+
+    var tagHtml = "";
+    if (isUnavailable) {
+      tagHtml = '<span class="unavailable-tag">Unavailable</span>';
+    } else if (limit <= 5) {
+      tagHtml = '<span class="stock-limit-tag">' + remaining + ' left</span>';
+    }
+
     card.innerHTML =
-      itemImgHtml(item, "menu-item-img", start + i) +
+      '<div class="menu-item-img-wrap">' +
+        itemImgHtml(item, "menu-item-img", start + i) +
+        tagHtml +
+      '</div>' +
       '<div class="menu-item-name">' + item.name + '</div>' +
       '<div class="menu-item-row">' +
         '<span class="menu-item-price">₱' + item.price.toFixed(2) + '</span>' +
-        '<span class="menu-item-add">+</span>' +
+        (isUnavailable || isMaxed ? '' : '<span class="menu-item-add">+</span>') +
       '</div>';
-    card.addEventListener("click", () => addToCart(item));
+    if (!isUnavailable && !isMaxed) {
+      card.addEventListener("click", () => addToCart(item));
+    }
     grid.appendChild(card);
   });
 
@@ -223,6 +368,7 @@ function addToCartDirect(id, name, price) {
   if (existing) existing.qty += 1;
   else cart.push({ id: id, name: name, price: price, qty: 1 });
   renderCart();
+  renderMenu();
 }
 
 function changeQty(id, delta) {
@@ -231,6 +377,7 @@ function changeQty(id, delta) {
   line.qty += delta;
   if (line.qty <= 0) cart.splice(cart.indexOf(line), 1);
   renderCart();
+  renderMenu();
 }
 
 function cartTotals() {
@@ -347,11 +494,33 @@ document.getElementById("confirm-payment-btn").addEventListener("click", async (
 
   const change = +(tendered - total).toFixed(2);
 
+  var tLabel;
+  if (orderType === "Take Out") {
+    tLabel = "Take Out";
+  } else {
+    var occupied = await getOccupiedTables();
+    if (occupied.has(tableNumber)) {
+      if (occupied.size >= MAX_TABLES) {
+        tLabel = "Waiting";
+      } else {
+        var next = await getFirstAvailableTable();
+        if (next !== null) {
+          tableNumber = next;
+          await updateTableDisplay();
+        }
+        tLabel = "Table " + tableNumber;
+      }
+    } else {
+      tLabel = "Table " + tableNumber;
+    }
+  }
+
   const order = await createOrder({
     items: cart.map((c) => ({ id: c.id, name: c.name, price: c.price, qty: c.qty })),
     subtotal, tax, total,
     payment: { method: "Cash", tendered, change },
-    tableLabel: "Table 5",
+    tableLabel: tLabel,
+    orderType: orderType,
   });
 
   await deductInventoryForOrder(order.items, menuById);
@@ -362,6 +531,8 @@ document.getElementById("confirm-payment-btn").addEventListener("click", async (
   await refreshApprovalBadge();
   await refreshKitchenBadge();
   await refreshInventoryBadge();
+
+  if (orderType === "Dine In") await autoSelectNextTable();
 
   showOrderDetail(order.id);
 });
@@ -376,6 +547,8 @@ async function showOrderDetail(orderId) {
 
   document.getElementById("detail-order-id").textContent = order.id;
   document.getElementById("detail-table").textContent = order.table;
+  var typeIcon = order.orderType === "Take Out" ? "🥡 Take Out" : "🍽 Dine In";
+  document.getElementById("detail-order-type").textContent = typeIcon;
   document.getElementById("detail-datetime").textContent = new Date(order.createdAt).toLocaleString("en-PH", {
     month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
   });
@@ -471,16 +644,32 @@ async function renderKitchen() {
         actionHtml = '<div class="ready-tag">Ready</div><button class="btn btn-serve" data-order="' + o.id + '" data-next="completed" type="button">Serve</button>';
       }
 
+      var tableTag = o.table === "Waiting"
+        ? '<span class="kitchen-waiting-tag">Waiting</span>'
+        : o.table;
+      var typeTag = o.orderType === "Take Out" ? " · 🥡 Take Out" : "";
+
+      var timerHtml = "";
+      if (o.orderType !== "Take Out") {
+        var elapsedMs = Date.now() - new Date(o.createdAt).getTime();
+        var remainMs = Math.max(0, DINE_IN_DURATION_MS - elapsedMs);
+        var remainMin = Math.floor(remainMs / 60000);
+        var remainSec = Math.floor((remainMs % 60000) / 1000);
+        timerHtml = '<div class="kitchen-timer' + (remainMs <= 30000 ? ' kitchen-timer-warn' : '') + '">⏳ ' + remainMin + ':' + (remainSec < 10 ? '0' : '') + remainSec + ' left</div>';
+      }
+
       card.innerHTML =
         '<div class="kitchen-card-head"><span>#' + o.id + '</span><span class="time">' + o.timeLabel + '</span></div>' +
-        '<div class="kitchen-card-meta">' + o.table + '</div>' +
+        '<div class="kitchen-card-meta">' + tableTag + typeTag + '</div>' +
+        timerHtml +
         '<ul class="kitchen-card-items">' + itemsHtml + '</ul>' +
         '<div class="kitchen-card-customer">Cashier: Nicole M.</div>' +
         actionHtml;
       card.querySelectorAll("button[data-order]").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
-          await updateOrderStatus(btn.dataset.order, btn.dataset.next);
+          var updated = await updateOrderStatus(btn.dataset.order, btn.dataset.next);
+          if (updated && updated.status === "completed") await assignWaitingOrders();
           renderKitchen();
         });
       });
@@ -571,7 +760,7 @@ async function renderApprovals() {
 
       const actionsHtml = a.status === "needed"
         ? '<div class="approval-actions">' +
-            '<button class="btn btn-outline" type="button">View Details</button>' +
+            '<button class="btn btn-outline" data-viewdetail="' + a.ingredient + '" type="button">View Details</button>' +
             '<button class="btn btn-approve" data-approve="' + a.id + '" type="button">Approve Restock</button>' +
           '</div>'
         : '<p class="approval-done">✓ Approved ' + (a.approvedAt || "") + '</p>';
@@ -588,11 +777,82 @@ async function renderApprovals() {
           await approveRestock(a.id);
           renderApprovals();
           renderInventory();
+          renderMenu();
           refreshApprovalBadge();
+        });
+      }
+      var detailBtn = card.querySelector("[data-viewdetail]");
+      if (detailBtn) {
+        detailBtn.addEventListener("click", function () {
+          showStockDetailModal(a);
         });
       }
       list.appendChild(card);
     });
+}
+
+// --- Stock Details Modal ----------------------------------------------------
+var stockDetailModal = document.getElementById("stock-detail-modal");
+
+document.getElementById("stock-detail-close").addEventListener("click", function () {
+  stockDetailModal.classList.remove("visible");
+});
+stockDetailModal.addEventListener("click", function (e) {
+  if (e.target === stockDetailModal) stockDetailModal.classList.remove("visible");
+});
+
+async function showStockDetailModal(alert) {
+  var inv = await DB.get("inventory", alert.ingredient);
+  var isOut = alert.type === "out" || (inv && inv.stock <= 0);
+  var statusLabel = isOut ? "Out of Stock" : "Low Stock";
+  var statusClass = isOut ? "out" : "low";
+
+  document.getElementById("stock-detail-title").textContent = alert.ingredient + " — " + statusLabel;
+
+  var body = document.getElementById("stock-detail-body");
+  var html = "";
+
+  if (inv) {
+    var pct = inv.lowThreshold > 0 ? Math.min(100, Math.round((inv.stock / (inv.lowThreshold * 2.5)) * 100)) : 0;
+    var barColor = isOut ? "var(--danger)" : pct < 40 ? "var(--warning)" : "var(--success)";
+
+    html += '<div class="stock-detail-summary">';
+    html += '<strong>' + inv.name + '</strong><br>';
+    html += 'Current Stock: <strong class="stock-detail-stock ' + statusClass + '">' + inv.stock.toFixed(2) + ' ' + inv.unit + '</strong><br>';
+    html += 'Low Threshold: ' + inv.lowThreshold.toFixed(2) + ' ' + inv.unit + '<br>';
+    html += 'Category: ' + inv.category;
+    html += '<div class="stock-detail-bar"><div class="stock-detail-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>';
+    html += '</div>';
+
+    if (isOut) {
+      html += '<p style="color:var(--danger);font-size:13px;font-weight:600;margin:0 0 10px;">⛔ This ingredient is completely depleted. Menu items using it cannot be prepared until restocked.</p>';
+    } else {
+      html += '<p style="color:var(--warning);font-size:13px;font-weight:600;margin:0 0 10px;">⚠ Stock is below the minimum threshold (' + inv.lowThreshold.toFixed(2) + ' ' + inv.unit + '). Restock soon to avoid running out.</p>';
+    }
+  }
+
+  var affected = MENU.filter(function (m) {
+    return m.ingredients && m.ingredients.some(function (ing) { return ing.name === alert.ingredient; });
+  });
+
+  if (affected.length > 0) {
+    html += '<div class="stock-detail-menu-title">Affected Menu Items (' + affected.length + ')</div>';
+    affected.forEach(function (m) {
+      var usage = m.ingredients.find(function (ing) { return ing.name === alert.ingredient; });
+      html += '<div class="stock-detail-item">';
+      html += '<span class="stock-detail-name">' + m.name + ' <span style="color:var(--text-tertiary);font-weight:400;">(' + m.cat + ')</span></span>';
+      html += '<span class="stock-detail-values">';
+      html += '<span>Uses ' + usage.use + ' ' + (inv ? inv.unit : '') + '/order</span>';
+      if (inv && inv.stock > 0 && usage.use > 0) {
+        var servings = Math.floor(inv.stock / usage.use);
+        html += '<br><span style="font-size:11px;color:var(--text-tertiary);">' + servings + ' serving(s) left</span>';
+      }
+      html += '</span></div>';
+    });
+  }
+
+  body.innerHTML = html;
+  stockDetailModal.classList.add("visible");
 }
 
 document.querySelectorAll("#page-approval .pill[data-appfilter]").forEach((pill) => {
@@ -680,23 +940,33 @@ async function renderDashboard() {
   const start = (dashPage - 1) * ITEMS_PER_PAGE;
   const pageItems = MENU.slice(start, start + ITEMS_PER_PAGE);
 
+  var stockLimits = await getItemStockLimits();
   const grid = document.getElementById("dashboard-menu-grid");
   grid.innerHTML = "";
   pageItems.forEach((item, i) => {
+    var limit = stockLimits[item.id] || 0;
+    var isUnavailable = limit <= 0;
     const card = document.createElement("div");
-    card.className = "dashboard-item-card";
+    card.className = "dashboard-item-card" + (isUnavailable ? " menu-item-unavailable" : "");
     card.innerHTML =
-      itemImgHtml(item, "dashboard-item-img", start + i) +
+      '<div class="menu-item-img-wrap">' +
+        itemImgHtml(item, "dashboard-item-img", start + i) +
+        (isUnavailable ? '<span class="unavailable-tag">Unavailable</span>' : '') +
+      '</div>' +
       '<div class="dashboard-item-info">' +
         '<div class="dashboard-item-name">' + item.name + '</div>' +
         '<div class="dashboard-item-cat">' + item.cat + '</div>' +
         '<div class="dashboard-item-price">₱' + item.price.toFixed(2) + '</div>' +
       '</div>' +
-      '<button class="btn btn-primary dashboard-order-btn" type="button">Order</button>';
-    card.querySelector(".dashboard-order-btn").addEventListener("click", () => {
-      addToCart(item);
-      showPage("orders");
-    });
+      (isUnavailable
+        ? '<button class="btn btn-outline dashboard-order-btn" type="button" disabled>Unavailable</button>'
+        : '<button class="btn btn-primary dashboard-order-btn" type="button">Order</button>');
+    if (!isUnavailable) {
+      card.querySelector(".dashboard-order-btn").addEventListener("click", () => {
+        addToCart(item);
+        showPage("orders");
+      });
+    }
     grid.appendChild(card);
   });
 
@@ -752,6 +1022,7 @@ document.getElementById("reset-stock-btn").addEventListener("click", async () =>
   if (!confirm("Reset all inventory to default levels? Orders and menu prices will be kept.")) return;
   await resetStockOnly();
   renderInventory();
+  renderMenu();
   renderSettings();
   await refreshApprovalBadge();
   await refreshInventoryBadge();
@@ -796,7 +1067,8 @@ document.getElementById("hold-order-btn").addEventListener("click", function () 
   if (cart.length === 0) { alert("No items in cart to hold."); return; }
   heldOrders.push({
     id: Date.now(),
-    table: "Table 5",
+    table: orderType === "Take Out" ? "Take Out" : "Table " + tableNumber,
+    orderType: orderType,
     items: cart.map(function (c) { return { id: c.id, name: c.name, price: c.price, qty: c.qty }; }),
     time: new Date().toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })
   });
@@ -972,7 +1244,7 @@ document.getElementById("print-order-btn").addEventListener("click", async funct
     '<h2>Bloom and Brew Cafe</h2>' +
     '<p class="sub">Official Receipt</p><hr>' +
     '<p>Order: <b>#' + order.id + '</b></p>' +
-    '<p>' + order.table + ' · ' + new Date(order.createdAt).toLocaleString("en-PH") + '</p>' +
+    '<p>' + (order.orderType || "Dine In") + ' · ' + order.table + ' · ' + new Date(order.createdAt).toLocaleString("en-PH") + '</p>' +
     '<p>Cashier: Nicole Melican</p><hr>' +
     '<table>';
   order.items.forEach(function (item) {
@@ -1015,6 +1287,7 @@ document.getElementById("move-status-btn").addEventListener("click", async funct
   if (!confirm("Move order #" + order.id + " to '" + labels[order.status] + "'?")) return;
 
   await updateOrderStatus(order.id, nextStatus);
+  if (nextStatus === "completed") await assignWaitingOrders();
   await refreshKitchenBadge();
   showOrderDetail(order.id);
 });
@@ -1033,7 +1306,44 @@ document.getElementById("cancel-order-btn").addEventListener("click", async func
   if (!confirm("Cancel order #" + order.id + "? This will remove it permanently.")) return;
 
   await DB.delete("orders", order.id);
+  await assignWaitingOrders();
   await refreshKitchenBadge();
   showPage("orders");
   alert("Order #" + order.id + " has been cancelled.");
 });
+
+// --- 19. Dine-in auto-complete timer (demo: 3 minutes) ----------------------
+var DINE_IN_DURATION_MS = 3 * 60 * 1000;
+
+async function checkDineInTimers() {
+  var orders = await DB.getAll("orders");
+  var now = Date.now();
+  var changed = false;
+
+  for (var i = 0; i < orders.length; i++) {
+    var o = orders[i];
+    if (o.status === "completed") continue;
+    if (o.orderType === "Take Out") continue;
+    var elapsed = now - new Date(o.createdAt).getTime();
+    if (elapsed >= DINE_IN_DURATION_MS) {
+      await updateOrderStatus(o.id, "completed");
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    await assignWaitingOrders();
+    await refreshKitchenBadge();
+    await updateTableDisplay();
+    var currentPage = sessionStorage.getItem("currentPage");
+    if (currentPage === "kitchen") renderKitchen();
+    if (currentPage === "dashboard") renderDashboard();
+  }
+}
+
+setInterval(checkDineInTimers, 10000);
+
+setInterval(function () {
+  var currentPage = sessionStorage.getItem("currentPage");
+  if (currentPage === "kitchen") renderKitchen();
+}, 5000);

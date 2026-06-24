@@ -162,6 +162,17 @@
       </div>
     </div>
 
+    <!-- STOCK DETAILS MODAL -->
+    <div class="modal-overlay" id="stock-detail-modal">
+      <div class="modal-card stock-detail-card">
+        <div class="modal-head">
+          <h2 id="stock-detail-title">Stock Details</h2>
+          <button class="modal-close" id="stock-detail-close" type="button">✕</button>
+        </div>
+        <div id="stock-detail-body"></div>
+      </div>
+    </div>
+
     <!-- ICED / HOT PICKER MODAL -->
     <div class="modal-overlay" id="temp-modal">
       <div class="modal-card temp-modal-card">
@@ -186,7 +197,7 @@
       <!-- PAGE: NEW ORDER -->
       <section id="page-orders" class="page visible">
         <header class="page-header">
-          <h1>New Order (Dine In)</h1>
+          <h1>New Order (<span id="order-type-label">Dine In</span>)</h1>
           <div class="page-header-actions">
             <button class="btn btn-outline" id="hold-order-btn" type="button">Hold Order <span class="hold-badge hidden" id="hold-badge">0</span></button>
             <button class="btn btn-primary" id="order-history-btn" type="button">Order History</button>
@@ -215,7 +226,18 @@
           <div class="order-col">
             <div class="order-col-head">
               <span>Current Order</span>
-              <span class="table-chip">Table 5</span>
+              <div class="order-type-toggle">
+                <button class="order-type-btn active" id="btn-dine-in" type="button">Dine In</button>
+                <button class="order-type-btn" id="btn-take-out" type="button">Take Out</button>
+              </div>
+            </div>
+            <div class="table-selector" id="table-selector">
+              <span class="table-chip">
+                <button class="table-stepper-btn" id="table-dec" type="button">−</button>
+                <span id="table-label">Table 1</span>
+                <button class="table-stepper-btn" id="table-inc" type="button">+</button>
+              </span>
+              <span class="table-status" id="table-status"></span>
             </div>
 
             <div class="order-items" id="order-items"></div>
@@ -283,7 +305,7 @@
                   <div class="detail-order-id">
                     Order #<span id="detail-order-id">—</span> <span class="status-pill" id="detail-status-pill">—</span>
                   </div>
-                  <p class="detail-meta">🍽 Dine In · <span id="detail-table">—</span> · Cashier: Nicole Melican</p>
+                  <p class="detail-meta"><span id="detail-order-type">🍽 Dine In</span> · <span id="detail-table">—</span> · Cashier: Nicole Melican</p>
                   <p class="detail-meta">📅 <span id="detail-datetime">—</span></p>
                 </div>
                 <div class="detail-customer">

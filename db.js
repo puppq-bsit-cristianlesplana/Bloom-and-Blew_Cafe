@@ -127,34 +127,34 @@ const SEED_MENU = [
 ];
 
 const SEED_INVENTORY = [
-  { name: "Espresso Beans", category: "Coffee", stock: 3.0, unit: "kg", lowThreshold: 1.0 },
-  { name: "Whole Milk", category: "Dairy", stock: 8.0, unit: "L", lowThreshold: 3.0 },
-  { name: "Vanilla Syrup", category: "Syrup", stock: 1.5, unit: "L", lowThreshold: 0.5 },
-  { name: "Hazelnut Syrup", category: "Syrup", stock: 1.2, unit: "L", lowThreshold: 0.5 },
-  { name: "Caramel Sauce", category: "Sauce", stock: 1.0, unit: "L", lowThreshold: 0.4 },
-  { name: "Choco Sauce", category: "Sauce", stock: 1.0, unit: "L", lowThreshold: 0.4 },
-  { name: "White Choco Sauce", category: "Sauce", stock: 0.8, unit: "L", lowThreshold: 0.4 },
-  { name: "Condensed Milk", category: "Dairy", stock: 2.0, unit: "L", lowThreshold: 0.8 },
-  { name: "Matcha Powder", category: "Powder", stock: 0.5, unit: "kg", lowThreshold: 0.2 },
-  { name: "Toffee Nut Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
-  { name: "Black Tea", category: "Tea", stock: 2.0, unit: "L", lowThreshold: 0.5 },
-  { name: "Hibiscus Tea", category: "Tea", stock: 2.0, unit: "L", lowThreshold: 0.5 },
-  { name: "Tangerine Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
-  { name: "Pandan Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
-  { name: "Lychee Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
-  { name: "Red Velvet Powder", category: "Powder", stock: 0.5, unit: "kg", lowThreshold: 0.2 },
-  { name: "Cranberry Syrup", category: "Syrup", stock: 1.0, unit: "L", lowThreshold: 0.4 },
-  { name: "Ube Crinkles", category: "Pastry", stock: 30, unit: "pcs", lowThreshold: 10 },
-  { name: "Oatmeal Cookies", category: "Pastry", stock: 30, unit: "pcs", lowThreshold: 10 },
-  { name: "Mixed Nuts", category: "Snack", stock: 20, unit: "packs", lowThreshold: 5 },
-  { name: "Cheesecake Bar", category: "Pastry", stock: 20, unit: "pcs", lowThreshold: 5 },
-  { name: "Avocado Toast", category: "Food", stock: 15, unit: "pcs", lowThreshold: 5 },
-  { name: "Empanada", category: "Food", stock: 25, unit: "pcs", lowThreshold: 8 },
-  { name: "Ensaimada", category: "Pastry", stock: 20, unit: "pcs", lowThreshold: 8 },
-  { name: "Tuna Melt", category: "Food", stock: 15, unit: "pcs", lowThreshold: 5 },
-  { name: "Hotdog", category: "Food", stock: 20, unit: "pcs", lowThreshold: 8 },
-  { name: "Pasta Carbonara", category: "Food", stock: 15, unit: "pcs", lowThreshold: 5 },
-  { name: "Fries", category: "Frozen", stock: 3.0, unit: "kg", lowThreshold: 1.0 },
+  { name: "Espresso Beans", category: "Coffee", stock: 6.0, unit: "kg", lowThreshold: 1.0 },
+  { name: "Whole Milk", category: "Dairy", stock: 16.0, unit: "L", lowThreshold: 3.0 },
+  { name: "Vanilla Syrup", category: "Syrup", stock: 3.0, unit: "L", lowThreshold: 0.5 },
+  { name: "Hazelnut Syrup", category: "Syrup", stock: 2.4, unit: "L", lowThreshold: 0.5 },
+  { name: "Caramel Sauce", category: "Sauce", stock: 2.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Choco Sauce", category: "Sauce", stock: 2.0, unit: "L", lowThreshold: 0.4 },
+  { name: "White Choco Sauce", category: "Sauce", stock: 1.6, unit: "L", lowThreshold: 0.4 },
+  { name: "Condensed Milk", category: "Dairy", stock: 4.0, unit: "L", lowThreshold: 0.8 },
+  { name: "Matcha Powder", category: "Powder", stock: 1.0, unit: "kg", lowThreshold: 0.2 },
+  { name: "Toffee Nut Syrup", category: "Syrup", stock: 2.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Black Tea", category: "Tea", stock: 4.0, unit: "L", lowThreshold: 0.5 },
+  { name: "Hibiscus Tea", category: "Tea", stock: 4.0, unit: "L", lowThreshold: 0.5 },
+  { name: "Tangerine Syrup", category: "Syrup", stock: 2.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Pandan Syrup", category: "Syrup", stock: 2.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Lychee Syrup", category: "Syrup", stock: 2.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Red Velvet Powder", category: "Powder", stock: 1.0, unit: "kg", lowThreshold: 0.2 },
+  { name: "Cranberry Syrup", category: "Syrup", stock: 2.0, unit: "L", lowThreshold: 0.4 },
+  { name: "Ube Crinkles", category: "Pastry", stock: 60, unit: "pcs", lowThreshold: 10 },
+  { name: "Oatmeal Cookies", category: "Pastry", stock: 60, unit: "pcs", lowThreshold: 10 },
+  { name: "Mixed Nuts", category: "Snack", stock: 40, unit: "packs", lowThreshold: 5 },
+  { name: "Cheesecake Bar", category: "Pastry", stock: 40, unit: "pcs", lowThreshold: 5 },
+  { name: "Avocado Toast", category: "Food", stock: 30, unit: "pcs", lowThreshold: 5 },
+  { name: "Empanada", category: "Food", stock: 50, unit: "pcs", lowThreshold: 8 },
+  { name: "Ensaimada", category: "Pastry", stock: 40, unit: "pcs", lowThreshold: 8 },
+  { name: "Tuna Melt", category: "Food", stock: 30, unit: "pcs", lowThreshold: 5 },
+  { name: "Hotdog", category: "Food", stock: 40, unit: "pcs", lowThreshold: 8 },
+  { name: "Pasta Carbonara", category: "Food", stock: 30, unit: "pcs", lowThreshold: 5 },
+  { name: "Fries", category: "Frozen", stock: 6.0, unit: "kg", lowThreshold: 1.0 },
 ];
 
 const DEFAULT_TAX_RATE = 0.0825;
@@ -229,7 +229,7 @@ async function deductInventoryForOrder(orderLines, menuById) {
   return lowNow;
 }
 
-async function createOrder({ items, subtotal, tax, total, payment, tableLabel }) {
+async function createOrder({ items, subtotal, tax, total, payment, tableLabel, orderType }) {
   const id = await nextOrderId();
   const order = {
     id,
@@ -237,6 +237,7 @@ async function createOrder({ items, subtotal, tax, total, payment, tableLabel })
     subtotal, tax, total,
     payment,
     table: tableLabel || "Walk-in",
+    orderType: orderType || "Dine In",
     status: "sent_to_kitchen",
     createdAt: new Date().toISOString(),
     timeLabel: new Date().toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" }),
