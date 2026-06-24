@@ -58,10 +58,12 @@
 
     <!-- Mobile top bar with hamburger -->
     <div class="mobile-topbar" id="mobile-topbar">
-      <button class="hamburger" id="hamburger-btn" type="button" title="Menu">
-        <span></span><span></span><span></span>
-      </button>
-      <img src="images/logo.png" alt="Bloom and Brew Cafe" class="mobile-topbar-logo">
+      <div class="mobile-topbar-left">
+        <button class="hamburger" id="hamburger-btn" type="button" title="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <img src="images/logo.png" alt="Bloom and Brew Cafe" class="mobile-topbar-logo">
+      </div>
     </div>
 
     <!-- Sidebar backdrop for mobile -->
@@ -340,7 +342,7 @@
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
             </select>
-            <button class="btn btn-outline" id="kitchen-refresh-btn" type="button">Refresh</button>
+            <button class="btn btn-outline" id="kitchen-refresh-btn" type="button"><img src="images/refresh-circle.svg" alt="Refresh" class="refresh-icon"> Refresh</button>
           </div>
         </header>
 
@@ -385,7 +387,7 @@
       <section id="page-approval" class="page">
         <header class="page-header">
           <h1>Manager Approval <span class="nav-badge inline-badge" id="approval-page-badge">0</span></h1>
-          <button class="btn btn-icon" id="approval-refresh" type="button">🔄</button>
+          <button class="btn btn-icon" id="approval-refresh" type="button"><img src="images/refresh-circle.svg" alt="Refresh" class="refresh-icon">Refresh</button>
         </header>
 
         <div class="queue-filter-pills">

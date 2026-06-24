@@ -112,16 +112,16 @@ body {
 }
 
 .landing-logo-img {
-  max-width: 520px;
+  max-width: 1024px;
   width: 100%;
   height: auto;
-  margin: 0 auto 20px;
+  margin: 0 auto 10px;
   display: block;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
 }
 
 .landing-tagline {
-  font-size: 16px;
+  font-size: 18px;
   color: #4a3728;
   margin: 16px 0 28px;
   line-height: 1.6;
@@ -639,6 +639,11 @@ body {
 .approval-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .btn-approve { background: var(--success); color: #fff; }
 
+.refresh-icon {
+  width: 18px; height: 18px; vertical-align: middle;
+  filter: brightness(0) invert(1);
+}
+
 /* ---------------------------------------------------------------------
    DASHBOARD
    --------------------------------------------------------------------- */
@@ -753,8 +758,10 @@ body {
     background: #fff; border-bottom: 1px solid var(--border);
     padding: 10px 14px; position: sticky; top: 0; z-index: 50;
   }
+  .mobile-topbar-left {
+    display: flex; align-items: center; gap: 10px;
+  }
   .mobile-topbar-logo { height: 30px; width: auto; flex-shrink: 0; }
-  .mobile-topbar-spacer { width: 36px; flex-shrink: 0; }
 
   /* Sidebar: slide-out overlay, icons only */
   .sidebar {
@@ -780,8 +787,12 @@ body {
     font-size: 9px; padding: 0 4px; min-width: 16px; text-align: center;
   }
 
-  /* User: avatar only */
-  .sidebar .sidebar-user { justify-content: center; padding: 8px 0; }
+  /* User: avatar only, sticky at bottom */
+  .sidebar .sidebar-user {
+    justify-content: center; padding: 8px 0;
+    position: sticky; bottom: 0; background: #fff;
+    margin-top: auto;
+  }
   .sidebar .user-text,
   .sidebar .user-caret { display: none; }
   .sidebar .user-avatar { width: 34px; height: 34px; font-size: 12px; }
