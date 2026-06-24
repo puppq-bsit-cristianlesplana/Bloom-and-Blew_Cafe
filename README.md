@@ -14,7 +14,7 @@ Live demo via GitHub Pages or open `index.html` directly in any modern browser.
 | `style.css`  | All styling — responsive design, sidebar, cards, modals, gradients |
 | `db.js`      | Database layer — schema, seed data, CRUD helpers, and business logic |
 | `script.js`  | Application logic — navigation, cart, checkout, rendering, and all feature handlers |
-| `images/`    | Product photos, logo, and favicon |
+| `images/`    | Product photos, logo, favicon, and SVG icons |
 
 ---
 
@@ -22,12 +22,15 @@ Live demo via GitHub Pages or open `index.html` directly in any modern browser.
 
 The POS implements a complete order-to-kitchen-to-inventory workflow:
 
-1. **Order Entry** — Cashier selects menu items, chooses Iced/Hot for coffee, builds the cart
-2. **Checkout** — System computes subtotal, configurable tax, and total; cashier enters cash tendered
-3. **Send to Kitchen** — Confirmed order is saved to the database and appears in Kitchen Queue
-4. **Inventory Deduction** — Ingredients used in the order are automatically deducted from stock
-5. **Low Stock Alerts** — If any ingredient drops below threshold, a Manager Approval alert is created
-6. **Restock Approval** — Manager approves the restock, which replenishes inventory levels
+1. **Order Entry** — Cashier selects Dine In or Take Out, picks a table (for dine-in), selects menu items, chooses Iced/Hot for coffee, builds the cart
+2. **Stock Validation** — Items with out-of-stock ingredients are marked "Unavailable" and cannot be ordered; low-stock items show remaining servings
+3. **Checkout** — System computes subtotal, configurable tax, and total; cashier enters cash tendered
+4. **Send to Kitchen** — Confirmed order is saved to the database and appears in Kitchen Queue with a countdown timer
+5. **Table Management** — Occupied tables are tracked; new orders auto-select the next available table; if all tables are full, orders are tagged "Waiting"
+6. **Inventory Deduction** — Ingredients used in the order are automatically deducted from stock
+7. **Low Stock Alerts** — If any ingredient drops below threshold, a Manager Approval alert is created
+8. **Restock Approval** — Manager views stock details and approves the restock, which replenishes inventory and re-enables affected menu items
+9. **Auto-Complete** — Dine-in orders auto-complete after 3 minutes (demo mode), freeing the table for waiting orders
 
 ---
 
@@ -37,16 +40,21 @@ The POS implements a complete order-to-kitchen-to-inventory workflow:
 - Branded starter screen with cafe logo and tagline
 - "Enter POS System" button transitions to the main interface
 - Warm gradient background (yellow glow + orange glow)
-- Session persistence — refreshing stays in the POS if already entered
+- Session persistence using `sessionStorage` — refreshing stays in the POS; closing the tab/browser returns to the landing page
 - Exit via cashier name modal returns to the landing page
 
 ### 2. Orders (New Order)
+- **Dine In / Take Out Toggle** — Switch between order types; Take Out hides the table selector
+- **Table Selector** — Stepper (1–10) with Available/Occupied status indicator; auto-selects next available table after each order
+- **Waiting System** — If all tables are occupied, dine-in orders are tagged "Waiting" and auto-assigned when a table frees up
 - **Menu Grid** — 4-column grid with product photos, names, and prices
+- **Stock Limits** — Items with low stock show a "X left" tag; unavailable items are grayed out with an "Unavailable" tag and cannot be ordered
+- **Order Limits** — Cart respects stock limits; items become disabled when the maximum orderable quantity is reached
 - **Category Filters** — All, Coffee, Ice Shaken, Non-Coffee, Snacks
 - **Search** — Real-time text search across all menu items
-- **Pagination** — 12 items per page (4×3 grid) with page navigation
-- **Iced/Hot Picker** — Coffee items show a modal to choose Iced (+₱5) or Hot
-- **Cart** — Live updating cart with quantity steppers (+/−), subtotal, tax, and total
+- **Pagination** — 12 items per page (4x3 grid) with page navigation
+- **Iced/Hot Picker** — Coffee items show a modal to choose Iced (+P5) or Hot
+- **Cart** — Live updating cart with quantity steppers (+/-), subtotal, tax, and total
 - **Hold Order** — Save current cart for later; badge shows count of held orders
 - **Order History** — Modal with two tabs:
   - *Completed Orders* — All past orders with details; click to view
@@ -55,21 +63,25 @@ The POS implements a complete order-to-kitchen-to-inventory workflow:
 - **Clear Cart** — Remove all items from the current order
 
 ### 3. Order Details
-- Full order summary — order ID, table, cashier, date/time, customer
+- Full order summary — order ID, order type (Dine In/Take Out), table, cashier, date/time, customer
 - Itemized list with quantities, unit prices, and amounts
 - Payment status — cash tendered, change given
 - Order status timeline — tracks progress through all stages
-- **Print Receipt** — Opens a formatted receipt in a new window and triggers print
-- **Move Status** — Advance order to the next workflow step (Sent → Preparing → Ready → Completed)
-- **Cancel Order** — Remove incomplete orders permanently
+- **Print Receipt** — Opens a formatted receipt in a new window with order type and table number; triggers print
+- **Move Status** — Advance order to the next workflow step (Sent > Preparing > Ready > Completed)
+- **Cancel Order** — Remove incomplete orders permanently; frees table for waiting orders
 
 ### 4. Kitchen Queue
 - Displays all active (non-completed) orders as cards
 - Color-coded: yellow border for new orders, green for ready
+- **Countdown Timer** — Dine-in orders show live remaining time (turns red under 30 seconds)
+- **Order Type Display** — Shows Dine In or Take Out icon per order
+- **Waiting Tag** — Orders without a table show a red "Waiting" badge
 - **Filter Pills** — All, New, Preparing, Ready with live counts
 - **Sort** — Newest First or Oldest First dropdown
-- **Refresh** — Manual refresh button
+- **Refresh** — SVG icon refresh button; kitchen auto-refreshes every 5 seconds
 - **Action Buttons** — Start, Mark Ready, Serve to advance each order
+- **Auto-Complete** — Dine-in orders automatically complete after 3 minutes (demo), freeing the table
 - **Notification Badge** — Sidebar shows count of new kitchen orders; clears on visit
 - Click any order card to view its full details
 
@@ -80,43 +92,45 @@ The POS implements a complete order-to-kitchen-to-inventory workflow:
 - **Add Item** — Modal form to add new inventory items with name, category, stock, unit, and threshold
 - **Notification Badge** — Sidebar shows count of low/out-of-stock items; clears on visit
 - Stock levels update automatically when orders are placed
+- Menu items become available again after restock approval
 
 ### 6. Manager Approval
 - Lists all low-stock and out-of-stock alerts
 - **Filter Tabs** — Approval Needed, Approved
-- **Approve Restock** — One-click approval that replenishes inventory to 2.5× the threshold level
-- **Refresh** — Reloads alerts and updates all sidebar badges
+- **View Details** — Modal showing ingredient details: current stock level with visual bar, low threshold, category, reason for alert, and all affected menu items with per-order usage and remaining servings
+- **Approve Restock** — One-click approval that replenishes inventory to 2.5x the threshold level; immediately re-enables unavailable menu items
+- **Refresh** — SVG icon button; reloads alerts and updates all sidebar badges
 - **Badge Count** — Shows number of pending approvals in sidebar and page header
 
 ### 7. Dashboard
 - **Stats Cards** — Total Orders, Total Revenue, Pending in Kitchen, Low Stock Items
-- **Menu Items Grid** — All products with photos, names, categories, and prices
-- **Order Button** — Quick-add item to cart and navigate to Orders page
+- **Menu Items Grid** — All products with photos, names, categories, and prices; unavailable items shown with "Unavailable" tag
+- **Order Button** — Quick-add item to cart and navigate to Orders page (disabled for unavailable items)
 - **Pagination** — 12 items per page with navigation
 
 ### 8. Settings
 - **Tax Rate** — Configurable tax percentage; updates all calculations and labels instantly
 - **Menu Prices** — Edit prices for all menu items; saves to database
-- **Reset Stock** — Restore all inventory to default levels; keeps orders and prices
+- **Reset Stock** — Restore all inventory to default levels; keeps orders and prices; re-enables menu items
 - **Reset All Data** — Factory reset; clears everything and reseeds from defaults
 
 ---
 
 ## Database Schema
 
-Four IndexedDB object stores:
+Five IndexedDB object stores:
 
 | Store        | Key    | Contents |
 |--------------|--------|----------|
 | `menuItems`  | `id`   | Name, price, category, image path, and ingredient usage per item |
 | `inventory`  | `name` | Stock level, unit, category, and low-stock threshold per ingredient |
-| `orders`     | `id`   | Items, totals, payment info, status, timestamps for each order |
+| `orders`     | `id`   | Items, totals, payment info, order type, table, status, timestamps |
 | `approvals`  | `id`   | Low-stock/out-of-stock alerts and their approval status |
 | `meta`       | `key`  | System settings — order counter, tax rate, seeded flag, DB version |
 
 ### Key Database Functions
 - `seedIfEmpty()` — Seeds menu, inventory, tax rate, and order counter on first run
-- `createOrder()` — Assigns order ID, saves order with `sent_to_kitchen` status
+- `createOrder()` — Assigns order ID, saves order with status, order type, and table
 - `updateOrderStatus()` — Moves order through the workflow stages
 - `deductInventoryForOrder()` — Subtracts ingredient usage; creates alerts if below threshold
 - `approveRestock()` — Marks alert approved; replenishes ingredient stock
@@ -138,7 +152,7 @@ The database auto-clears stale data when the `DB_VERSION` is bumped. No manual c
 - **Notification Badges** — Red badges on Kitchen, Inventory, and Manager Approval
 - **Cashier Profile** — Click to open exit modal with "Exit to Home" button
 - **Sticky Position** — Sidebar stays fixed while content scrolls
-- **Responsive** — Collapses to icon-only slide-out menu on mobile
+- **Responsive** — Collapses to slide-out menu with labels and cashier name on mobile
 
 ---
 
@@ -147,9 +161,9 @@ The database auto-clears stale data when the `DB_VERSION` is bumped. No manual c
 | Breakpoint | Behavior |
 |------------|----------|
 | Desktop (>1024px) | Full sidebar with text labels, 4-column grids |
-| Tablet (≤1024px) | Narrower sidebar, 3-column grids |
-| Mobile (≤768px) | Top bar with hamburger + centered logo; sidebar as 60px icon-only slide-out overlay |
-| Phone (≤480px) | 2-column grids, stacked layouts, compact headers |
+| Tablet (<=1024px) | Narrower sidebar, 3-column grids |
+| Mobile (<=768px) | Top bar with hamburger + logo; sidebar as 200px slide-out with labels and cashier name |
+| Phone (<=480px) | 2-column grids, stacked layouts, compact headers |
 
 ---
 
@@ -157,34 +171,51 @@ The database auto-clears stale data when the `DB_VERSION` is bumped. No manual c
 
 | Category | Items | Price Range |
 |----------|-------|-------------|
-| Coffee | 11 drinks (Americano, Cafe Latte, Vanilla Latte, etc.) | ₱45–₱59 |
-| Ice Shaken | 4 drinks (Chocolate, Toffee Nut, Black Tea, Hibiscus Tea) | ₱55–₱59 |
-| Non-Coffee | 7 drinks (Matcha Latte, Tangerine Tea, Iced Chocolate, etc.) | ₱25–₱35 |
-| Snacks | 11 items (Ube Crinkles, Avocado Toast, Pasta Carbonara, etc.) | ₱39–₱129 |
+| Coffee | 11 drinks (Americano, Cafe Latte, Vanilla Latte, etc.) | P45–P59 |
+| Ice Shaken | 4 drinks (Chocolate, Toffee Nut, Black Tea, Hibiscus Tea) | P55–P59 |
+| Non-Coffee | 7 drinks (Matcha Latte, Tangerine Tea, Iced Chocolate, etc.) | P25–P35 |
+| Snacks | 11 items (Ube Crinkles, Avocado Toast, Pasta Carbonara, etc.) | P39–P129 |
 
 **Total: 33 menu items**
 
 ---
 
-## Held Orders
+## Table Management
 
-Held orders are stored in `localStorage` (not IndexedDB) so they persist across page refreshes but are specific to the device/browser. Access via the "Order History" button on the Orders page.
+- 10 tables available (Table 1 through Table 10)
+- Table selector with +/- stepper and real-time Available/Occupied status
+- After placing a dine-in order, the system auto-selects the next available table
+- If all tables are occupied, the order is tagged "Waiting"
+- When a table frees up (order completed, auto-completed, or cancelled), the oldest waiting order is automatically assigned to the freed table
+- Take Out orders bypass table management entirely
+
+---
+
+## Dine-In Timer (Demo Mode)
+
+- Dine-in orders auto-complete after **3 minutes** to simulate customer turnover
+- Kitchen cards show a live countdown timer that updates every 5 seconds
+- Timer turns red when under 30 seconds remaining
+- On auto-complete, the table is freed and waiting orders are assigned
+- Take Out orders have no timer
 
 ---
 
 ## Session Persistence
 
-The app remembers your current module using `localStorage`:
+The app uses `sessionStorage` for page state (persists across refreshes, clears on tab close):
 - `posActive` — Whether the POS is entered (skips landing page on refresh)
 - `currentPage` — Which module was last active (restores on refresh)
 - Clicking "Exit to Home" clears both, returning to the landing page
+
+Held orders use `localStorage` so they persist even after closing the browser.
 
 ---
 
 ## Running the System
 
 1. Open `index.html` in any modern browser, OR
-2. Enable **GitHub Pages** on the repo (Settings → Pages → Branch: `main` / Folder: `/ (root)`)
+2. Enable **GitHub Pages** on the repo (Settings > Pages > Branch: `main` / Folder: `/ (root)`)
 
 No setup, no server, no installation — IndexedDB and localStorage are built into every modern browser.
 
@@ -207,3 +238,5 @@ No setup, no server, no installation — IndexedDB and localStorage are built in
 - No login/authentication — cashier name is configurable but static
 - Data is local to the browser — not synced between devices
 - Held orders use localStorage, not IndexedDB
+- Dine-in timer is set to 3 minutes for demo purposes (configurable in code)
+- No receipt printing to physical thermal printers (browser print only)
