@@ -500,9 +500,6 @@ body {
 .menu-item-unavailable {
   opacity: 0.5; cursor: not-allowed; pointer-events: none;
 }
-.menu-item-maxed {
-  opacity: 0.55; cursor: not-allowed; pointer-events: none;
-}
 .stock-limit-tag {
   position: absolute; top: 6px; right: 6px;
   background: var(--warning); color: #fff; font-size: 10px; font-weight: 700;

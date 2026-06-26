@@ -243,40 +243,81 @@ function itemImgHtml(item, cls, idx) {
   return '<img class="' + cls + ' item-img" src="' + item.image + '" alt="' + item.name + '" data-cat="' + item.cat + '" data-idx="' + (idx || 0) + '">';
 }
 
+function getCartIngredientUsage() {
+  var usage = {};
+  cart.forEach(function (c) {
+    var baseId = c.id.replace(/-iced$|-hot$/, "");
+    var menuItem = menuById[baseId];
+    if (!menuItem || !menuItem.ingredients) return;
+    menuItem.ingredients.forEach(function (ing) {
+      if (!usage[ing.name]) usage[ing.name] = 0;
+      usage[ing.name] += ing.use * c.qty;
+    });
+  });
+  return usage;
+}
+
 async function getItemStockLimits() {
   var inventory = await DB.getAll("inventory");
   var invByName = {};
   inventory.forEach(function (r) { invByName[r.name] = r; });
+
+  var cartUsage = getCartIngredientUsage();
+
+  var effectiveStock = {};
+  Object.keys(invByName).forEach(function (name) {
+    var dbStock = invByName[name].stock;
+    var used = cartUsage[name] || 0;
+    effectiveStock[name] = Math.max(0, +(dbStock - used).toFixed(3));
+  });
+
+  var orders = await DB.getAll("orders");
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var soldToday = {};
+  orders.forEach(function (o) {
+    if (!o.createdAt || o.createdAt.slice(0, 10) !== todayStr) return;
+    o.items.forEach(function (line) {
+      var baseId = line.id.replace(/-iced$|-hot$/, "");
+      if (!soldToday[baseId]) soldToday[baseId] = 0;
+      soldToday[baseId] += line.qty;
+    });
+  });
+
   var limits = {};
   MENU.forEach(function (item) {
     if (!item.ingredients) { limits[item.id] = Infinity; return; }
     var minServings = Infinity;
     for (var j = 0; j < item.ingredients.length; j++) {
       var ing = item.ingredients[j];
-      var row = invByName[ing.name];
-      if (!row || row.stock <= 0) { minServings = 0; break; }
+      var stock = effectiveStock[ing.name];
+      if (stock === undefined || stock <= 0) { minServings = 0; break; }
       if (ing.use > 0) {
-        var servings = Math.floor(row.stock / ing.use);
+        var servings = Math.floor(stock / ing.use);
         if (servings < minServings) minServings = servings;
       }
     }
+
+    if (item.maxDaily) {
+      var sold = soldToday[item.id] || 0;
+      var cartQty = 0;
+      cart.forEach(function (c) {
+        var cBase = c.id.replace(/-iced$|-hot$/, "");
+        if (cBase === item.id) cartQty += c.qty;
+      });
+      var dailyRemaining = Math.max(0, item.maxDaily - sold - cartQty);
+      if (dailyRemaining < minServings) minServings = dailyRemaining;
+    }
+
     limits[item.id] = minServings;
   });
   return limits;
 }
 
-function getCartQtyForItem(itemId) {
-  var base = itemId.replace(/-iced$|-hot$/, "");
-  var qty = 0;
-  cart.forEach(function (c) {
-    var cBase = c.id.replace(/-iced$|-hot$/, "");
-    if (cBase === base) qty += c.qty;
-  });
-  return qty;
-}
-
+var _menuRenderCounter = 0;
 async function renderMenu() {
+  var renderId = ++_menuRenderCounter;
   var stockLimits = await getItemStockLimits();
+  if (renderId !== _menuRenderCounter) return;
   const filtered = getFilteredMenu();
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   if (menuPage > totalPages) menuPage = totalPages;
@@ -286,21 +327,18 @@ async function renderMenu() {
   const grid = document.getElementById("menu-grid");
   grid.innerHTML = "";
   pageItems.forEach((item, i) => {
-    var limit = stockLimits[item.id] || 0;
-    var inCart = getCartQtyForItem(item.id);
-    var remaining = Math.max(0, limit - inCart);
-    var isUnavailable = limit <= 0;
-    var isMaxed = remaining <= 0 && !isUnavailable;
+    var remaining = stockLimits[item.id] || 0;
+    var isUnavailable = remaining <= 0;
 
     const card = document.createElement("button");
-    card.className = "menu-item" + (isUnavailable ? " menu-item-unavailable" : isMaxed ? " menu-item-maxed" : "");
+    card.className = "menu-item" + (isUnavailable ? " menu-item-unavailable" : "");
     card.type = "button";
-    if (isUnavailable || isMaxed) card.disabled = true;
+    if (isUnavailable) card.disabled = true;
 
     var tagHtml = "";
     if (isUnavailable) {
       tagHtml = '<span class="unavailable-tag">Unavailable</span>';
-    } else if (limit <= 5) {
+    } else if (remaining <= 5) {
       tagHtml = '<span class="stock-limit-tag">' + remaining + ' left</span>';
     }
 
@@ -312,9 +350,9 @@ async function renderMenu() {
       '<div class="menu-item-name">' + item.name + '</div>' +
       '<div class="menu-item-row">' +
         '<span class="menu-item-price">₱' + item.price.toFixed(2) + '</span>' +
-        (isUnavailable || isMaxed ? '' : '<span class="menu-item-add">+</span>') +
+        (isUnavailable ? '' : '<span class="menu-item-add">+</span>') +
       '</div>';
-    if (!isUnavailable && !isMaxed) {
+    if (!isUnavailable) {
       card.addEventListener("click", () => addToCart(item));
     }
     grid.appendChild(card);
@@ -436,6 +474,7 @@ document.getElementById("menu-search").addEventListener("input", (e) => {
 document.getElementById("clear-order").addEventListener("click", () => {
   cart.length = 0;
   renderCart();
+  renderMenu();
 });
 
 // --- 3. Checkout + Cash Payment modal ---------------------------------------
