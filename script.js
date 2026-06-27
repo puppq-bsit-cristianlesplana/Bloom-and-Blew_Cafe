@@ -271,18 +271,6 @@ async function getItemStockLimits() {
     effectiveStock[name] = Math.max(0, +(dbStock - used).toFixed(3));
   });
 
-  var orders = await DB.getAll("orders");
-  var todayStr = new Date().toISOString().slice(0, 10);
-  var soldToday = {};
-  orders.forEach(function (o) {
-    if (!o.createdAt || o.createdAt.slice(0, 10) !== todayStr) return;
-    o.items.forEach(function (line) {
-      var baseId = line.id.replace(/-iced$|-hot$/, "");
-      if (!soldToday[baseId]) soldToday[baseId] = 0;
-      soldToday[baseId] += line.qty;
-    });
-  });
-
   var limits = {};
   MENU.forEach(function (item) {
     if (!item.ingredients) { limits[item.id] = Infinity; return; }
@@ -296,18 +284,6 @@ async function getItemStockLimits() {
         if (servings < minServings) minServings = servings;
       }
     }
-
-    if (item.maxDaily) {
-      var sold = soldToday[item.id] || 0;
-      var cartQty = 0;
-      cart.forEach(function (c) {
-        var cBase = c.id.replace(/-iced$|-hot$/, "");
-        if (cBase === item.id) cartQty += c.qty;
-      });
-      var dailyRemaining = Math.max(0, item.maxDaily - sold - cartQty);
-      if (dailyRemaining < minServings) minServings = dailyRemaining;
-    }
-
     limits[item.id] = minServings;
   });
   return limits;

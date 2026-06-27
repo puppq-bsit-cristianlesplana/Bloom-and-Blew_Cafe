@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Move-Item -Destination \"c:\\\\Users\\\\cristian\\\\Desktop\\\\Bloom-and-Brew_Cafe\\\\\" -Force)"
+    ]
+  }
+}

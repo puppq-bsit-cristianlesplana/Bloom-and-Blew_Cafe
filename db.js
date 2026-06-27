@@ -198,7 +198,8 @@ async function deductInventoryForOrder(orderLines, menuById) {
   const lowNow = [];
 
   for (const line of orderLines) {
-    const menuItem = menuById[line.id];
+    const baseId = line.id.replace(/-iced$|-hot$/, "");
+    const menuItem = menuById[baseId] || menuById[line.id];
     if (!menuItem) continue;
     for (const ing of menuItem.ingredients) {
       const row = invByName[ing.name];
